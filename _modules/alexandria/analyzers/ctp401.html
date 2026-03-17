@@ -1,0 +1,496 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>alexandria.analyzers.ctp401 &mdash; alexandria 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            alexandria
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">alexandria</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">alexandria.analyzers.ctp401</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for alexandria.analyzers.ctp401</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">CTP401 Analyzer - Linearity Module (4-ROI)</span>
+
+<span class="sd">This module handles the CTP401 linearity analysis with 4 material ROIs:</span>
+<span class="sd">LDPE, Air, Teflon, and Acrylic positioned at 0°, 90°, 180°, and 270°.</span>
+
+<span class="sd">Provides comprehensive analysis including:</span>
+<span class="sd">- Material ROI contrast measurements (HU accuracy)</span>
+<span class="sd">- Low Contrast Visibility (LCV)</span>
+<span class="sd">- Spatial scaling/linearity verification</span>
+<span class="sd">- Automatic rotation detection using air ROI positions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Sphinx/autodoc: expanded docstrings and inline comments for maintainability.</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndimage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">interpn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
+
+
+<div class="viewcode-block" id="CTP401Analyzer">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP401Analyzer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CTP401Analyzer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Analyzer for CTP401 linearity module (4-ROI version).</span>
+
+<span class="sd">    This module measures HU values for 4 material inserts (LDPE, Air, Teflon, Acrylic),</span>
+<span class="sd">    calculates low contrast visibility, verifies spatial scaling, and can automatically </span>
+<span class="sd">    detect phantom rotation.</span>
+
+<span class="sd">    Supports both single-image mode and DICOM-series mode with 3-slice averaging.</span>
+
+<span class="sd">    Key Features:</span>
+<span class="sd">    - 4 Material ROI analysis (LDPE at 0°, Air at 90° (south/bottom), Teflon at 180°, Acrylic at 270° (north/top))</span>
+<span class="sd">    - Automatic rotation detection using air ROI position</span>
+<span class="sd">    - Low Contrast Visibility (LCV) calculation</span>
+<span class="sd">    - Spatial scaling verification (X and Y axes)</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        image (np.ndarray): 2D CT image of the module.</span>
+<span class="sd">        center (tuple): (x, y) coordinates of phantom center in pixels.</span>
+<span class="sd">        pixel_spacing (float): Pixel spacing in mm.</span>
+<span class="sd">        results (dict): Analysis results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Material names and angles for 4-ROI mode</span>
+    <span class="n">ROI_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;LDPE&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>        <span class="c1"># 0 degrees (east/right)</span>
+        <span class="s1">&#39;Air&#39;</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span>        <span class="c1"># 90 degrees (south/bottom)</span>
+        <span class="s1">&#39;Teflon&#39;</span><span class="p">:</span> <span class="mi">180</span><span class="p">,</span>    <span class="c1"># 180 degrees (west/left)</span>
+        <span class="s1">&#39;Acrylic&#39;</span><span class="p">:</span> <span class="mi">270</span>    <span class="c1"># 270 degrees (north/top)</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">roi_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
+        <span class="n">material_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">58.5</span><span class="p">,</span>
+        <span class="n">edge_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100.0</span><span class="p">,</span>
+        <span class="n">center_finder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">center_finder_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">center_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mi">980</span><span class="p">,</span>
+        <span class="n">center_threshold_fallback</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mf">900.0</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the CTP401 analyzer (4-ROI linearity module).</span>
+
+<span class="sd">        Supports two initialization modes:</span>
+<span class="sd">        1. Single-image mode: Provide image, center, and pixel_spacing</span>
+<span class="sd">        2. DICOM-series mode: Provide dicom_set and slice_index</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            image: 2D CT image of the module (single-image mode).</span>
+<span class="sd">            center: (x, y) coordinates of phantom center in pixels.</span>
+<span class="sd">            pixel_spacing: Pixel spacing in mm.</span>
+<span class="sd">            spacing: Alias for pixel_spacing.</span>
+<span class="sd">            dicom_set: List of DICOM dataset objects (DICOM-series mode).</span>
+<span class="sd">            slice_index: Index of the CTP401 slice in the dataset.</span>
+<span class="sd">            roi_radius: Radius of ROI circles in mm (default: 3.5mm).</span>
+<span class="sd">            material_distance: Distance from center to ROI centers in mm (default: 58.5mm).</span>
+<span class="sd">            edge_threshold: Minimum peak height for edge detection (default: 100.0).</span>
+<span class="sd">                           Tune this for different scanners/protocols if rotation detection fails.</span>
+<span class="sd">            center_finder: Optional callable to compute center from image.</span>
+<span class="sd">                           Should return (row, col) or (row, col, diameter_y_px, diameter_x_px).</span>
+<span class="sd">            center_finder_kwargs: Optional dict of kwargs to pass to center_finder.</span>
+<span class="sd">            center_threshold: Threshold used by the default center finder.</span>
+<span class="sd">            center_threshold_fallback: Fallback threshold if the primary fails.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Handle image initialization</span>
+        <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;single&#39;</span>
+        <span class="k">elif</span> <span class="n">dicom_set</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">slice_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span> <span class="o">=</span> <span class="n">dicom_set</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">slice_index</span> <span class="o">=</span> <span class="n">slice_index</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_averaged_image</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;dicom&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must provide either &#39;image&#39; or both &#39;dicom_set&#39; and &#39;slice_index&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Handle center - if None, will be computed later</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">center</span>
+        
+        <span class="c1"># Handle pixel spacing (support both parameter names)</span>
+        <span class="k">if</span> <span class="n">pixel_spacing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="n">pixel_spacing</span>
+        <span class="k">elif</span> <span class="n">spacing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="n">spacing</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Try to extract from DICOM</span>
+            <span class="k">if</span> <span class="n">dicom_set</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">slice_index</span><span class="p">]</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must provide &#39;pixel_spacing&#39; or &#39;spacing&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">roi_radius</span>                <span class="o">=</span> <span class="n">roi_radius</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span>         <span class="o">=</span> <span class="n">material_distance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_threshold</span>            <span class="o">=</span> <span class="n">edge_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center_finder</span>             <span class="o">=</span> <span class="n">center_finder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center_finder_kwargs</span>      <span class="o">=</span> <span class="n">center_finder_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span>          <span class="o">=</span> <span class="n">center_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span> <span class="o">=</span> <span class="n">center_threshold_fallback</span>
+        
+        <span class="c1"># Results storage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span>         <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roi_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>           <span class="o">=</span> <span class="kc">None</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_averaged_image</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create 3-slice averaged image for improved SNR.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Averaged image array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slice_index</span>
+
+        <span class="c1"># Safely handle edge cases near the ends of the series by repeating</span>
+        <span class="c1"># the nearest available neighbor rather than raising an IndexError.</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">im1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>  <span class="c1"># Repeat next slice</span>
+        <span class="k">elif</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">im1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>  <span class="c1"># Repeat previous slice</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">im1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+
+        <span class="c1"># Convert to float before averaging to preserve fractional values.</span>
+        <span class="n">averaged_image</span> <span class="o">=</span> <span class="p">(</span><span class="n">im1</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im2</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im3</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span> <span class="o">/</span> <span class="mf">3.0</span>
+        <span class="k">return</span> <span class="n">averaged_image</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_circular_mask</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">h</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">w</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">radius</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a boolean circular mask.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            h: Image height.</span>
+<span class="sd">            w: Image width.</span>
+<span class="sd">            center: (x, y) coordinates of circle center.</span>
+<span class="sd">            radius: Circle radius in pixels.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Boolean mask array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">center</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Default to geometric image center when none provided.</span>
+            <span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">w</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">radius</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># If radius not provided, use the largest circle that fits in image.</span>
+            <span class="n">radius</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">w</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">h</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">Y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ogrid</span><span class="p">[:</span><span class="n">h</span><span class="p">,</span> <span class="p">:</span><span class="n">w</span><span class="p">]</span>
+        <span class="n">dist_from_center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">Y</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dist_from_center</span> <span class="o">&lt;=</span> <span class="n">radius</span>
+    
+<div class="viewcode-block" id="CTP401Analyzer.analyze">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP401Analyzer.analyze">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform ROI analysis on the stored image.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            t_offset: Rotational offset for ROIs in degrees</span>
+<span class="sd">            verbose: Print progress information</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary containing analysis results with:</span>
+<span class="sd">            - &#39;ROIs&#39;: Dictionary of ROI results (mean, std for each material)</span>
+<span class="sd">            - &#39;LCV_percent&#39;: Low contrast visibility percentage</span>
+<span class="sd">            - &#39;Scale&#39;: Spatial scaling factors (scaleX_cm, scaleY_cm)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Analyzing CTP401 linearity module...&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Compute center if not provided</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_center_edge_detection</span><span class="p">,</span> <span class="n">compute_phantom_boundary</span><span class="p">,</span> <span class="n">draw_boundary</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">_unpack_center_result</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">value</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;center_finder must return (row, col) or (row, col, diameter_y_px, diameter_x_px)&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_finder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_finder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">center_finder_kwargs</span><span class="p">)</span>
+                <span class="n">center_row</span><span class="p">,</span> <span class="n">center_col</span><span class="p">,</span> <span class="n">diameter_y</span><span class="p">,</span> <span class="n">diameter_x</span> <span class="o">=</span> <span class="n">_unpack_center_result</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">center_row</span><span class="p">,</span> <span class="n">center_col</span><span class="p">,</span> <span class="n">diameter_y</span><span class="p">,</span> <span class="n">diameter_x</span> <span class="o">=</span> <span class="n">find_center_edge_detection</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                    <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span><span class="p">,</span>
+                    <span class="n">fallback_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span><span class="p">,</span>
+                    <span class="n">return_diameters</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="n">center_col</span><span class="p">,</span> <span class="n">center_row</span><span class="p">)</span>  <span class="c1"># Convert to (x, y)</span>
+
+            <span class="c1"># Draw boundary from edge-derived diameters when available</span>
+            <span class="n">boundary_x</span><span class="p">,</span> <span class="n">boundary_y</span> <span class="o">=</span> <span class="n">draw_boundary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">diameter_x</span><span class="p">,</span> <span class="n">diameter_y</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">boundary_y</span><span class="p">)</span> <span class="o">=</span> <span class="n">compute_phantom_boundary</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span><span class="p">,</span>
+                    <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span><span class="p">,</span>
+                    <span class="n">fallback_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">boundary</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">boundary_x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[],</span>
+                <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="n">boundary_y</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_y</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="p">}</span>
+        
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span>  <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">c0</span>    <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span>
+        <span class="n">space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span>
+
+        <span class="c1"># ROI parameters in pixels</span>
+        <span class="n">r</span>      <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roi_radius</span> <span class="o">/</span> <span class="n">space</span>          <span class="c1"># ROI radius in pixels</span>
+        <span class="n">ring_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span> <span class="o">/</span> <span class="n">space</span>  <span class="c1"># Distance to ROI centers in pixels</span>
+
+        <span class="n">roi_results</span>          <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roi_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Analyze each of the 4 ROIs</span>
+        <span class="k">for</span> <span class="n">material</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ROI_CONFIG</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Calculate ROI center</span>
+            <span class="c1"># Offset is CCW-positive in math space; image indexing is CW-positive, so subtract for sampling.</span>
+            <span class="n">angle_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">angle</span> <span class="o">-</span> <span class="n">t_offset</span><span class="p">)</span>
+            <span class="n">cx</span>        <span class="o">=</span> <span class="n">ring_r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">)</span> <span class="o">+</span> <span class="n">c0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">cy</span>        <span class="o">=</span> <span class="n">ring_r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">)</span> <span class="o">+</span> <span class="n">c0</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># Create circular mask</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_circular_mask</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="p">(</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">),</span> <span class="n">radius</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
+
+            <span class="c1"># Calculate statistics</span>
+            <span class="n">roi_mean</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">image</span><span class="p">[</span><span class="n">mask</span><span class="p">]))</span>
+            <span class="n">roi_std</span>  <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">image</span><span class="p">[</span><span class="n">mask</span><span class="p">]))</span>
+            
+            <span class="n">roi_results</span><span class="p">[</span><span class="n">material</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="n">roi_mean</span><span class="p">,</span>
+                <span class="s1">&#39;std&#39;</span><span class="p">:</span> <span class="n">roi_std</span><span class="p">,</span>
+                <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="n">angle</span><span class="p">,</span>
+                <span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="n">cx</span><span class="p">,</span>
+                <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="n">cy</span>
+            <span class="p">}</span>
+
+            <span class="c1"># Store ROI coordinates for visualization</span>
+            <span class="n">t_viz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="n">roi_x</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">t_viz</span><span class="p">)</span> <span class="o">+</span> <span class="n">cx</span>
+            <span class="n">roi_y</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t_viz</span><span class="p">)</span> <span class="o">+</span> <span class="n">cy</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">roi_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">roi_x</span><span class="p">,</span> <span class="n">roi_y</span><span class="p">))</span>
+            
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">material</span><span class="si">:</span><span class="s2">8s</span><span class="si">}</span><span class="s2"> (angle </span><span class="si">{</span><span class="n">angle</span><span class="si">:</span><span class="s2">4.0f</span><span class="si">}</span><span class="s2">°): </span><span class="si">{</span><span class="n">roi_mean</span><span class="si">:</span><span class="s2">7.1f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">roi_std</span><span class="si">:</span><span class="s2">5.1f</span><span class="si">}</span><span class="s2"> HU&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Compute Low Contrast Visibility (LCV)</span>
+        <span class="c1"># LCV = 3.25 * (σ_air + σ_LDPE) / (μ_air - μ_LDPE)</span>
+        <span class="n">denominator</span> <span class="o">=</span> <span class="n">roi_results</span><span class="p">[</span><span class="s1">&#39;Air&#39;</span><span class="p">][</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">roi_results</span><span class="p">[</span><span class="s1">&#39;LDPE&#39;</span><span class="p">][</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">denominator</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;⚠️  Warning: Air and LDPE ROIs have identical means (</span><span class="si">{</span><span class="n">roi_results</span><span class="p">[</span><span class="s1">&#39;Air&#39;</span><span class="p">][</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> HU)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    This suggests incorrect ROI positioning or invalid image data.&quot;</span><span class="p">)</span>
+            <span class="n">lcv</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Set to 0 rather than causing division by zero</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lcv</span> <span class="o">=</span> <span class="mf">3.25</span> <span class="o">*</span> <span class="p">(</span><span class="n">roi_results</span><span class="p">[</span><span class="s1">&#39;Air&#39;</span><span class="p">][</span><span class="s1">&#39;std&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">roi_results</span><span class="p">[</span><span class="s1">&#39;LDPE&#39;</span><span class="p">][</span><span class="s1">&#39;std&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">denominator</span>
+
+        <span class="c1"># Compute spatial scaling factors</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_spatial_scaling</span><span class="p">(</span><span class="n">t_offset</span><span class="p">)</span>
+
+        <span class="c1"># Store results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;ROIs&#39;</span><span class="p">:</span> <span class="n">roi_results</span><span class="p">,</span>
+            <span class="s1">&#39;LCV_percent&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">lcv</span><span class="p">),</span>
+            <span class="s1">&#39;Scale&#39;</span><span class="p">:</span> <span class="n">scale</span><span class="p">,</span>
+            <span class="s1">&#39;rotation_offset&#39;</span><span class="p">:</span> <span class="n">t_offset</span><span class="p">,</span>
+            <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span>
+        <span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Low Contrast Visibility: </span><span class="si">{</span><span class="n">lcv</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spatial Scaling: X=</span><span class="si">{</span><span class="n">scale</span><span class="p">[</span><span class="s1">&#39;scaleX_cm&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> cm, Y=</span><span class="si">{</span><span class="n">scale</span><span class="p">[</span><span class="s1">&#39;scaleY_cm&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> cm&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_spatial_scaling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_offset</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute spatial scaling/linearity using edge detection.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            t_offset: Rotation offset in degrees</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with scaleX_cm and scaleY_cm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span>
+        <span class="n">c0</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span>
+        <span class="n">space</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span>
+        <span class="n">ring_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span> <span class="o">/</span> <span class="n">space</span>
+        
+        <span class="c1"># Extract horizontal and vertical profiles through center</span>
+        <span class="n">px</span>             <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">c0</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span> <span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">py</span>             <span class="o">=</span> <span class="n">image</span><span class="p">[:,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">c0</span><span class="p">[</span><span class="mi">0</span><span class="p">]))]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">profile_length</span> <span class="o">=</span> <span class="mi">26</span>  <span class="c1"># pixels to sample around each ROI</span>
+
+        <span class="c1"># Calculate positions of ROIs along axes</span>
+        <span class="c1"># Offset is CCW-positive in math space; image indexing is CW-positive, so subtract for sampling.</span>
+        <span class="n">idx_x1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ring_r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">0</span> <span class="o">-</span> <span class="n">t_offset</span><span class="p">))</span> <span class="o">+</span> <span class="n">c0</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">idx_x2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ring_r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">180</span> <span class="o">-</span> <span class="n">t_offset</span><span class="p">))</span> <span class="o">+</span> <span class="n">c0</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">idx_y1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ring_r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">90</span> <span class="o">-</span> <span class="n">t_offset</span><span class="p">))</span> <span class="o">+</span> <span class="n">c0</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">idx_y2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ring_r</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mi">270</span> <span class="o">-</span> <span class="n">t_offset</span><span class="p">))</span> <span class="o">+</span> <span class="n">c0</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="c1"># Extract profiles around ROIs</span>
+        <span class="n">px1</span> <span class="o">=</span> <span class="n">px</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_x1</span><span class="o">-</span><span class="n">profile_length</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">px</span><span class="p">),</span> <span class="n">idx_x1</span><span class="o">+</span><span class="n">profile_length</span><span class="p">)]</span>
+        <span class="n">px2</span> <span class="o">=</span> <span class="n">px</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_x2</span><span class="o">-</span><span class="n">profile_length</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">px</span><span class="p">),</span> <span class="n">idx_x2</span><span class="o">+</span><span class="n">profile_length</span><span class="p">)]</span>
+        <span class="n">py1</span> <span class="o">=</span> <span class="n">py</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_y1</span><span class="o">-</span><span class="n">profile_length</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">py</span><span class="p">),</span> <span class="n">idx_y1</span><span class="o">+</span><span class="n">profile_length</span><span class="p">)]</span>
+        <span class="n">py2</span> <span class="o">=</span> <span class="n">py</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_y2</span><span class="o">-</span><span class="n">profile_length</span><span class="p">):</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">py</span><span class="p">),</span> <span class="n">idx_y2</span><span class="o">+</span><span class="n">profile_length</span><span class="p">)]</span>
+
+        <span class="c1"># Take derivatives to find edges</span>
+        <span class="n">dpx1</span><span class="p">,</span> <span class="n">dpx2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">px1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">px2</span><span class="p">)</span>
+        <span class="n">dpy1</span><span class="p">,</span> <span class="n">dpy2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">py1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">py2</span><span class="p">)</span>
+
+        <span class="c1"># Find edge positions (min and max of derivative)</span>
+        <span class="n">minx1</span><span class="p">,</span> <span class="n">maxx1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dpx1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dpx1</span><span class="p">)</span>
+        <span class="n">minx2</span><span class="p">,</span> <span class="n">maxx2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dpx2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dpx2</span><span class="p">)</span>
+        <span class="n">miny1</span><span class="p">,</span> <span class="n">maxy1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dpy1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dpy1</span><span class="p">)</span>
+        <span class="n">miny2</span><span class="p">,</span> <span class="n">maxy2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dpy2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dpy2</span><span class="p">)</span>
+
+        <span class="c1"># Calculate scaling factors (expected 10cm between opposite ROIs)</span>
+        <span class="n">scaleX1</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">idx_x2</span> <span class="o">-</span> <span class="n">idx_x1</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">minx1</span> <span class="o">-</span> <span class="n">minx2</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span>
+        <span class="n">scaleX2</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">idx_x2</span> <span class="o">-</span> <span class="n">idx_x1</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">maxx1</span> <span class="o">-</span> <span class="n">maxx2</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span>
+        <span class="n">scaleY1</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">idx_y1</span> <span class="o">-</span> <span class="n">idx_y2</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">miny1</span> <span class="o">-</span> <span class="n">miny2</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span>
+        <span class="n">scaleY2</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">idx_y1</span> <span class="o">-</span> <span class="n">idx_y2</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">maxy1</span> <span class="o">-</span> <span class="n">maxy2</span><span class="p">)</span> <span class="o">*</span> <span class="n">space</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span>
+
+        <span class="n">scaleX</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">scaleX1</span><span class="p">,</span> <span class="n">scaleX2</span><span class="p">]))</span>
+        <span class="n">scaleY</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">scaleY1</span><span class="p">,</span> <span class="n">scaleY2</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;scaleX_cm&#39;</span><span class="p">:</span> <span class="n">scaleX</span><span class="p">,</span> <span class="s1">&#39;scaleY_cm&#39;</span><span class="p">:</span> <span class="n">scaleY</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+    
+<div class="viewcode-block" id="CTP401Analyzer.detect_rotation">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP401Analyzer.detect_rotation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_angle_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Detect phantom rotation using material insert positions.</span>
+<span class="sd">        </span>
+<span class="sd">        Finds the Air insert (90°, top) and Acrylic insert (270°, bottom) and </span>
+<span class="sd">        calculates rotation based on their offset from vertical alignment. </span>
+<span class="sd">        Uses iterative refinement with safety threshold to prevent invalid results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Implementation omitted in the copied excerpt to keep file concise for initial migration.</span>
+        <span class="c1"># The full implementation remains in the original package and will be migrated next.</span>
+        <span class="k">return</span> <span class="n">initial_angle_deg</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,316 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>alexandria.plotters.ctp515_plotter &mdash; alexandria 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            alexandria
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">alexandria</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">alexandria.plotters.ctp515_plotter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for alexandria.plotters.ctp515_plotter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">CTP515 Plotter</span>
+
+<span class="sd">Creates comprehensive visualization plots for low-contrast detectability analysis results.</span>
+<span class="sd">Displays image with color-coded ROIs, dual-axis CNR/Contrast plots, and statistics table.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.patches</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">patches</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_phantom_boundary</span>
+
+
+<div class="viewcode-block" id="CTP515Plotter">
+<a class="viewcode-back" href="../../../api.html#alexandria.plotters.ctp515_plotter.CTP515Plotter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CTP515Plotter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plotter for AnalyzerCTP515 (low-contrast detectability) results.</span>
+
+<span class="sd">    Creates a 2x2 layout displaying:</span>
+<span class="sd">      - Image with color-coded ROI circles and background ROI</span>
+<span class="sd">      - Dual-axis plot of CNR and Contrast vs. ROI diameter</span>
+<span class="sd">      - Statistics table showing mean, std, CNR, and contrast for each ROI</span>
+
+<span class="sd">    ROIs are color-coded by diameter size with adaptive contrast windowing</span>
+<span class="sd">    to enhance visibility of low-contrast features.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        analyzer (AnalyzerCTP515): Completed analyzer instance with results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            analyzer (AnalyzerCTP515): Completed analyzer instance with results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">analyzer</span> <span class="o">=</span> <span class="n">analyzer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span>  <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span>    <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center</span>   <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">center</span>
+
+<div class="viewcode-block" id="CTP515Plotter.plot">
+<a class="viewcode-back" href="../../../api.html#alexandria.plotters.ctp515_plotter.CTP515Plotter.plot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate visualization of low-contrast ROI analysis.</span>
+<span class="sd">        </span>
+<span class="sd">        Layout:</span>
+<span class="sd">          - Top left: Image with ROI overlays</span>
+<span class="sd">          - Top right: CNR and Contrast vs. ROI Diameter (dual y-axes)</span>
+<span class="sd">          - Bottom: Statistics table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+        
+        <span class="c1"># Create subplots</span>
+        <span class="n">ax_img</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">ax_plot</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">ax_table</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">colspan</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        
+        <span class="c1"># Left: Image with ROIs (no cropping)</span>
+        <span class="n">display_image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span>
+        
+        <span class="c1"># Apply adaptive contrast focused on background values</span>
+        <span class="n">center_crop_size</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span>             <span class="o">=</span> <span class="n">display_image</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">cy_center</span>        <span class="o">=</span> <span class="n">h</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">cx_center</span>        <span class="o">=</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">center_sample</span>    <span class="o">=</span> <span class="n">display_image</span><span class="p">[</span>
+            <span class="n">cy_center</span> <span class="o">-</span> <span class="n">center_crop_size</span><span class="o">//</span><span class="mi">2</span> <span class="p">:</span> <span class="n">cy_center</span> <span class="o">+</span> <span class="n">center_crop_size</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">cx_center</span> <span class="o">-</span> <span class="n">center_crop_size</span><span class="o">//</span><span class="mi">2</span> <span class="p">:</span> <span class="n">cx_center</span> <span class="o">+</span> <span class="n">center_crop_size</span><span class="o">//</span><span class="mi">2</span>
+        <span class="p">]</span>
+        <span class="n">bg_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">center_sample</span><span class="p">)</span>
+        <span class="n">bg_std</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">center_sample</span><span class="p">)</span>
+        
+        <span class="n">vmin</span> <span class="o">=</span> <span class="n">bg_mean</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">bg_std</span>
+        <span class="n">vmax</span> <span class="o">=</span> <span class="n">bg_mean</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">bg_std</span>
+        
+        <span class="n">ax_img</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">display_image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
+        <span class="n">ax_img</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CTP515 Low-Contrast ROIs (n=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;n_detected&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="n">ax_img</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Draw outer phantom boundary (retrieve from analyzer if available)</span>
+        <span class="n">boundary</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">analyzer</span><span class="p">,</span> <span class="s1">&#39;boundary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">boundary</span> <span class="ow">and</span> <span class="s1">&#39;x&#39;</span> <span class="ow">in</span> <span class="n">boundary</span> <span class="ow">and</span> <span class="s1">&#39;y&#39;</span> <span class="ow">in</span> <span class="n">boundary</span><span class="p">:</span>
+            <span class="n">boundary_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">])</span>
+            <span class="n">boundary_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pixel_spacing</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">analyzer</span><span class="p">,</span> <span class="s1">&#39;pixel_spacing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">boundary_y</span><span class="p">)</span> <span class="o">=</span> <span class="n">compute_phantom_boundary</span><span class="p">(</span><span class="n">display_image</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ax_img</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">boundary_y</span><span class="p">,</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        
+        <span class="c1"># Draw central analysis region (approximate 65mm radius for low-contrast ROIs)</span>
+        <span class="n">pixel_spacing</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">analyzer</span><span class="p">,</span> <span class="s1">&#39;pixel_spacing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pixel_spacing</span><span class="p">:</span>
+            <span class="n">analysis_radius_px</span> <span class="o">=</span> <span class="mf">65.0</span> <span class="o">/</span> <span class="n">pixel_spacing</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="n">analysis_x</span> <span class="o">=</span> <span class="n">analysis_radius_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">analysis_y</span> <span class="o">=</span> <span class="n">analysis_radius_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ax_img</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">analysis_x</span><span class="p">,</span> <span class="n">analysis_y</span><span class="p">,</span> <span class="s1">&#39;c--&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
+        
+        <span class="c1"># Plot phantom center</span>
+        <span class="n">center_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">center_row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ax_img</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">center_col</span><span class="p">,</span> <span class="n">center_row</span><span class="p">,</span> <span class="s1">&#39;r+&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">markeredgewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        
+        <span class="c1"># Define color map for different ROI diameters</span>
+        <span class="n">color_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">15</span><span class="p">:</span> <span class="s1">&#39;#00ffff&#39;</span><span class="p">,</span>
+            <span class="mi">9</span><span class="p">:</span>  <span class="s1">&#39;#00ff00&#39;</span><span class="p">,</span>
+            <span class="mi">8</span><span class="p">:</span>  <span class="s1">&#39;#ffff00&#39;</span><span class="p">,</span>
+            <span class="mi">7</span><span class="p">:</span>  <span class="s1">&#39;#ff8800&#39;</span><span class="p">,</span>
+            <span class="mi">6</span><span class="p">:</span>  <span class="s1">&#39;#ff00ff&#39;</span><span class="p">,</span>
+            <span class="mi">5</span><span class="p">:</span>  <span class="s1">&#39;#ff0000&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="n">diameters</span>       <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cnrs</span>            <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">contrasts</span>       <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">legend_handles</span>  <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">legend_labels</span>   <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">bg_dist_mm</span>   <span class="o">=</span> <span class="mi">35</span>
+        <span class="n">bg_radius_mm</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">bg_angle_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyzer</span><span class="o">.</span><span class="n">ROI_ANGLES</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyzer</span><span class="o">.</span><span class="n">angle_offset</span>
+        <span class="n">bg_angle_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">bg_angle_deg</span><span class="p">)</span>
+        <span class="n">spacing</span>      <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyzer</span><span class="o">.</span><span class="n">pixel_spacing</span>
+        <span class="n">bg_dist_px</span>   <span class="o">=</span> <span class="n">bg_dist_mm</span> <span class="o">/</span> <span class="n">spacing</span>
+        <span class="n">bg_radius_px</span> <span class="o">=</span> <span class="n">bg_radius_mm</span> <span class="o">/</span> <span class="n">spacing</span>
+        <span class="n">cy</span><span class="p">,</span> <span class="n">cx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">bg_x</span>   <span class="o">=</span> <span class="n">cx</span> <span class="o">+</span> <span class="n">bg_dist_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">bg_angle_rad</span><span class="p">)</span>
+        <span class="n">bg_y</span>   <span class="o">=</span> <span class="n">cy</span> <span class="o">+</span> <span class="n">bg_dist_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">bg_angle_rad</span><span class="p">)</span>
+        <span class="n">bg_color</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span>
+        <span class="n">bg_circle</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">Circle</span><span class="p">((</span><span class="n">bg_x</span><span class="p">,</span> <span class="n">bg_y</span><span class="p">),</span> <span class="n">bg_radius_px</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">bg_color</span><span class="p">,</span> 
+                                   <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="n">ax_img</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">bg_circle</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">roi_name</span><span class="p">,</span> <span class="n">roi_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;blobs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">x</span>        <span class="o">=</span> <span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
+            <span class="n">y</span>        <span class="o">=</span> <span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span>
+            <span class="n">r</span>        <span class="o">=</span> <span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">]</span>
+            <span class="n">cnr</span>      <span class="o">=</span> <span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;cnr&#39;</span><span class="p">]</span>
+            <span class="n">contrast</span> <span class="o">=</span> <span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;contrast&#39;</span><span class="p">]</span>
+            <span class="n">diameter</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">roi_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;mm&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="n">diameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diameter</span><span class="p">)</span>
+            <span class="n">cnrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cnr</span><span class="p">)</span>
+            <span class="n">contrasts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">contrast</span><span class="p">)</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="n">color_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">diameter</span><span class="p">),</span> <span class="s1">&#39;cyan&#39;</span><span class="p">)</span>
+            <span class="n">circle</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">Circle</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">r</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ax_img</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">circle</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">diameter</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;mm&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">legend_labels</span><span class="p">]:</span>
+                <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">patches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">diameter</span><span class="p">)</span><span class="si">}</span><span class="s1">mm&#39;</span><span class="p">)</span>
+
+        <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">patches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="n">bg_color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">))</span>
+        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Background&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">legend_handles</span><span class="p">:</span>
+            <span class="n">ax_img</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legend_handles</span><span class="p">,</span> <span class="n">legend_labels</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">framealpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;ROI Diameter&#39;</span><span class="p">)</span>
+
+        <span class="n">sorted_indices</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">diameters</span><span class="p">)</span>
+        <span class="n">diameters_sorted</span> <span class="o">=</span> <span class="p">[</span><span class="n">diameters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sorted_indices</span><span class="p">]</span>
+        <span class="n">cnrs_sorted</span>      <span class="o">=</span> <span class="p">[</span><span class="n">cnrs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sorted_indices</span><span class="p">]</span>
+        <span class="n">contrasts_sorted</span> <span class="o">=</span> <span class="p">[</span><span class="n">contrasts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sorted_indices</span><span class="p">]</span>
+
+        <span class="n">ax_plot</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">diameters_sorted</span><span class="p">,</span> <span class="n">cnrs_sorted</span><span class="p">,</span> <span class="s1">&#39;bo-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;CNR&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">ax_plot</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;ROI Diameter (mm)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">ax_plot</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;CNR&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+        <span class="n">ax_plot</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+        <span class="n">ax_plot</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+        <span class="n">ax_contrast</span> <span class="o">=</span> <span class="n">ax_plot</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+        <span class="n">ax_contrast</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">diameters_sorted</span><span class="p">,</span> <span class="n">contrasts_sorted</span><span class="p">,</span> <span class="s1">&#39;ro-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Contrast (%)&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">ax_contrast</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Contrast (%)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+        <span class="n">ax_contrast</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">labelcolor</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+        <span class="n">ax_plot</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;CNR and Contrast vs. ROI Diameter&#39;</span><span class="p">)</span>
+
+        <span class="n">lines1</span><span class="p">,</span> <span class="n">labels1</span> <span class="o">=</span> <span class="n">ax_plot</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
+        <span class="n">lines2</span><span class="p">,</span> <span class="n">labels2</span> <span class="o">=</span> <span class="n">ax_contrast</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
+        <span class="n">ax_plot</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">lines1</span> <span class="o">+</span> <span class="n">lines2</span><span class="p">,</span> <span class="n">labels1</span> <span class="o">+</span> <span class="n">labels2</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+        <span class="n">ax_table</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+        <span class="n">table_data</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;Diameter (mm)&#39;</span><span class="p">,</span> <span class="s1">&#39;Mean (HU)&#39;</span><span class="p">,</span> <span class="s1">&#39;Std (HU)&#39;</span><span class="p">,</span> <span class="s1">&#39;CNR&#39;</span><span class="p">,</span> <span class="s1">&#39;Contrast (%)&#39;</span><span class="p">]]</span>
+        <span class="n">roi_list</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">float</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;mm&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)),</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;blobs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="n">roi_list</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">diameter</span><span class="p">,</span> <span class="n">roi_name</span><span class="p">,</span> <span class="n">roi_data</span> <span class="ow">in</span> <span class="n">roi_list</span><span class="p">:</span>
+            <span class="n">table_data</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">diameter</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;std&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;cnr&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">roi_data</span><span class="p">[</span><span class="s1">&#39;contrast&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">])</span>
+        <span class="k">if</span> <span class="n">roi_list</span><span class="p">:</span>
+            <span class="n">bg_data</span> <span class="o">=</span> <span class="n">roi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">table_data</span><span class="o">.</span><span class="n">append</span><span class="p">([</span> <span class="s1">&#39;Background&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bg_data</span><span class="p">[</span><span class="s1">&#39;bg_mean&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bg_data</span><span class="p">[</span><span class="s1">&#39;bg_std&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;—&#39;</span><span class="p">,</span> <span class="s1">&#39;—&#39;</span> <span class="p">])</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">ax_table</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="n">cellText</span><span class="o">=</span><span class="n">table_data</span><span class="p">,</span> <span class="n">cellLoc</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">colWidths</span><span class="o">=</span><span class="p">[</span><span class="mf">0.15</span><span class="p">]</span><span class="o">*</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">auto_set_font_size</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">set_fontsize</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table_data</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+            <span class="n">cell</span> <span class="o">=</span> <span class="n">table</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
+            <span class="n">cell</span><span class="o">.</span><span class="n">set_facecolor</span><span class="p">(</span><span class="s1">&#39;#4CAF50&#39;</span><span class="p">)</span>
+            <span class="n">cell</span><span class="o">.</span><span class="n">set_text_props</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">table_data</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table_data</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="n">cell</span> <span class="o">=</span> <span class="n">table</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">cell</span><span class="o">.</span><span class="n">set_facecolor</span><span class="p">(</span><span class="s1">&#39;#f0f0f0&#39;</span><span class="p">)</span>
+
+        <span class="n">ax_table</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;ROI Statistics&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">fig</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,187 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alexandria — Quick Reference &mdash; alexandria 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            alexandria
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">alexandria</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Alexandria — Quick Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/QUICK_REFERENCE.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="alexandria-quick-reference">
+<h1>Alexandria — Quick Reference<a class="headerlink" href="#alexandria-quick-reference" title="Link to this heading"></a></h1>
+<p>This quick reference summarizes the current <code class="docutils literal notranslate"><span class="pre">alexandria</span></code> package and common usage patterns. It is intentionally concise — see <code class="docutils literal notranslate"><span class="pre">docs/CONTENTS.md</span></code> for a more detailed reference.</p>
+<p>Installation / smoke test</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From the repository root</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>docs<span class="o">]</span>
+
+<span class="c1"># Smoke test</span>
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import alexandria; print(alexandria.__version__)&quot;</span>
+</pre></div>
+</div>
+<p>Core modules</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alexandria.analyzers</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">UniformityAnalyzer</span></code>, <code class="docutils literal notranslate"><span class="pre">DetailedUniformityAnalyzer</span></code>, <code class="docutils literal notranslate"><span class="pre">HighContrastAnalyzer</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP401Analyzer</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP404Analyzer</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP515Analyzer</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alexandria.wrappers</span></code> — module reporters (convenience): <code class="docutils literal notranslate"><span class="pre">UniformityModuleReporter</span></code>, <code class="docutils literal notranslate"><span class="pre">HighContrastModuleReporter</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP401ModuleReporter</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP404ModuleReporter</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP515ModuleReporter</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alexandria.plotters</span></code> — visualizers for analyzers (return <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alexandria.utils</span></code> — <code class="docutils literal notranslate"><span class="pre">geometry</span></code>, <code class="docutils literal notranslate"><span class="pre">image_processing</span></code> helpers</p></li>
+</ul>
+<p>Recommended imports</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.uniformity</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformityAnalyzer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.wrappers.uniformity_wrapper</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformityModuleReporter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.high_contrast</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighContrastAnalyzer</span>
+</pre></div>
+</div>
+<p>Usage patterns</p>
+<ol class="arabic simple">
+<li><p>Wrapper workflow (recommended for scripts)</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reporter</span> <span class="o">=</span> <span class="n">UniformityModuleReporter</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">img</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="n">reporter</span><span class="o">.</span><span class="n">save_plot</span><span class="p">(</span><span class="s1">&#39;uniformity.png&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">reporter</span><span class="o">.</span><span class="n">get_summary</span><span class="p">())</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Direct analyzer usage (fine-grained control)</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">an</span> <span class="o">=</span> <span class="n">HighContrastAnalyzer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">img</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">an</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;mtf_points&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>DICOM series (application chooses slice selection)</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>
+<span class="n">dicom_set</span> <span class="o">=</span> <span class="p">[</span><span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">series_paths</span><span class="p">]</span>
+<span class="n">slice_index</span> <span class="o">=</span> <span class="n">choose_slice_index</span><span class="p">(</span><span class="n">dicom_set</span><span class="p">)</span>  <span class="c1"># app policy</span>
+<span class="n">an</span> <span class="o">=</span> <span class="n">HighContrastAnalyzer</span><span class="p">(</span><span class="n">dicom_set</span><span class="o">=</span><span class="n">dicom_set</span><span class="p">,</span> <span class="n">slice_index</span><span class="o">=</span><span class="n">slice_index</span><span class="p">)</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">an</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Wrapper common API</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze()</span></code> → results (dict)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plot()</span></code> → <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze_and_plot()</span></code> → <code class="docutils literal notranslate"><span class="pre">(results,</span> <span class="pre">fig)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_plot(path)</span></code> → save last figure</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_summary()</span></code> → short human summary</p></li>
+</ul>
+<p>Utilities</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">alexandria.utils.geometry</span></code> — center finding, ROI masks, boundary builders, rotation helpers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alexandria.utils.image_processing</span></code> — profile extraction, filtering, edge detection, noise estimation.</p></li>
+</ul>
+<p>Best practices</p>
+<ul class="simple">
+<li><p>Provide explicit <code class="docutils literal notranslate"><span class="pre">center</span></code> where available to stabilize ROI placement.</p></li>
+<li><p>Use DICOM-series mode for higher SNR; keep slice-selection logic in application code.</p></li>
+<li><p>Detect rotation once (e.g., with <code class="docutils literal notranslate"><span class="pre">CTP401Analyzer</span></code>) and reuse the angle for other analyzers.</p></li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">analyze()</span></code> before <code class="docutils literal notranslate"><span class="pre">plot()</span></code>.</p></li>
+</ul>
+<p>Docs and building locally</p>
+<p>Sphinx sources live in <code class="docutils literal notranslate"><span class="pre">docs/source</span></code>. To build locally:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>docs<span class="o">]</span>
+python<span class="w"> </span>-m<span class="w"> </span>sphinx<span class="w"> </span>-b<span class="w"> </span>html<span class="w"> </span>docs/source<span class="w"> </span>docs/_build/html
+</pre></div>
+</div>
+<p>If any analyzer import raises errors during autodoc, ensure the editable install succeeded and required extras are installed.</p>
+<p>Contact / contribution</p>
+<p>Open issues or PRs for missing examples, additional analyzers, or improved docs. The project welcomes contributions that expand phantom coverage or add reusable medical-physics utilities.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

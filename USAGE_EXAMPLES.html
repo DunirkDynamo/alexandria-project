@@ -1,0 +1,223 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alexandria — Usage Examples &mdash; alexandria 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            alexandria
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">alexandria</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Alexandria — Usage Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/USAGE_EXAMPLES.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="alexandria-usage-examples">
+<h1>Alexandria — Usage Examples<a class="headerlink" href="#alexandria-usage-examples" title="Link to this heading"></a></h1>
+<p>This document provides concise examples for the current <code class="docutils literal notranslate"><span class="pre">alexandria</span></code> package: analyzers, plotters, and wrappers.</p>
+<p>Key notes:</p>
+<ul class="simple">
+<li><p>The shared package does not decide application-specific slice selection for MTF (CTP528). Provide your own selection policy when using DICOM series.</p></li>
+<li><p>Most analyzers accept either a single <code class="docutils literal notranslate"><span class="pre">image</span></code> (numpy 2D array) or a <code class="docutils literal notranslate"><span class="pre">dicom_set</span></code> (list of pydicom Dataset) with an optional <code class="docutils literal notranslate"><span class="pre">slice_index</span></code>.</p></li>
+</ul>
+<hr class="docutils" />
+<section id="single-image-example-uniformity">
+<h2>1) Single-image example — Uniformity<a class="headerlink" href="#single-image-example-uniformity" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">imageio</span><span class="w"> </span><span class="kn">import</span> <span class="n">imread</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.uniformity</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformityAnalyzer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.wrappers.uniformity_wrapper</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformityModuleReporter</span>
+
+<span class="n">image</span> <span class="o">=</span> <span class="n">imread</span><span class="p">(</span><span class="s1">&#39;ctp_uniformity.png&#39;</span><span class="p">)</span>  <span class="c1"># 2D numpy array</span>
+
+<span class="c1"># Analyzer directly</span>
+<span class="n">ua</span> <span class="o">=</span> <span class="n">UniformityAnalyzer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">ua</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Uniformity %:&#39;</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;uniformity&#39;</span><span class="p">))</span>
+
+<span class="c1"># Wrapper convenience</span>
+<span class="n">reporter</span> <span class="o">=</span> <span class="n">UniformityModuleReporter</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">reporter</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="n">reporter</span><span class="o">.</span><span class="n">save_plot</span><span class="p">(</span><span class="s1">&#39;uniformity_report.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="high-contrast-mtf-example">
+<h2>2) High-contrast (MTF) example<a class="headerlink" href="#high-contrast-mtf-example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.high_contrast</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighContrastAnalyzer</span>
+
+<span class="c1"># Single-image usage</span>
+<span class="n">hc</span> <span class="o">=</span> <span class="n">HighContrastAnalyzer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">mtf_results</span> <span class="o">=</span> <span class="n">hc</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;MTF50 lp/mm:&#39;</span><span class="p">,</span> <span class="n">mtf_results</span><span class="p">[</span><span class="s1">&#39;mtf_points&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;MTF50&#39;</span><span class="p">))</span>
+
+<span class="c1"># DICOM-series usage (application must choose slice_index)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>
+<span class="n">dicom_set</span> <span class="o">=</span> <span class="p">[</span><span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">series_paths</span><span class="p">]</span>
+<span class="c1"># choose slice_index using your app&#39;s policy, e.g. visually or by metric</span>
+<span class="n">hc</span> <span class="o">=</span> <span class="n">HighContrastAnalyzer</span><span class="p">(</span><span class="n">dicom_set</span><span class="o">=</span><span class="n">dicom_set</span><span class="p">,</span> <span class="n">slice_index</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">hc_res</span> <span class="o">=</span> <span class="n">hc</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="ctp401-ctp404-ctp515-examples">
+<h2>3) CTP401 / CTP404 / CTP515 examples<a class="headerlink" href="#ctp401-ctp404-ctp515-examples" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.ctp401</span><span class="w"> </span><span class="kn">import</span> <span class="n">CTP401Analyzer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.ctp404</span><span class="w"> </span><span class="kn">import</span> <span class="n">CTP404Analyzer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.ctp515</span><span class="w"> </span><span class="kn">import</span> <span class="n">CTP515Analyzer</span>
+
+<span class="n">ct401</span> <span class="o">=</span> <span class="n">CTP401Analyzer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">res401</span> <span class="o">=</span> <span class="n">ct401</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">res401</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ROIs&#39;</span><span class="p">))</span>
+
+<span class="n">ct404</span> <span class="o">=</span> <span class="n">CTP404Analyzer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">res404</span> <span class="o">=</span> <span class="n">ct404</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+
+<span class="n">ct515</span> <span class="o">=</span> <span class="n">CTP515Analyzer</span><span class="p">(</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">res515</span> <span class="o">=</span> <span class="n">ct515</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;CTP515 detected:&#39;</span><span class="p">,</span> <span class="n">res515</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;n_detected&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="plotters-direct-usage">
+<h2>4) Plotters (direct usage)<a class="headerlink" href="#plotters-direct-usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.plotters.uniformity_plotter</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformityPlotter</span>
+
+<span class="n">plotter</span> <span class="o">=</span> <span class="n">UniformityPlotter</span><span class="p">(</span><span class="n">ua</span><span class="p">)</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plotter</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;uniformity_direct_plot.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Plotters accept an analyzer instance and return a <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure</span></code>. Use them when you want control over figure creation.</p>
+</section>
+<section id="dicom-series-skeleton-ordering-selection-belongs-to-your-app">
+<h2>5) DICOM-series skeleton (ordering &amp; selection belongs to your app)<a class="headerlink" href="#dicom-series-skeleton-ordering-selection-belongs-to-your-app" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.high_contrast</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighContrastAnalyzer</span>
+
+<span class="n">dicom_set</span> <span class="o">=</span> <span class="p">[</span><span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">series_paths</span><span class="p">]</span>
+
+<span class="c1"># Application-level slice selection example (simple skeleton)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">pick_slice_by_metric</span><span class="p">(</span><span class="n">dicom_set</span><span class="p">):</span>
+    <span class="c1"># Implement your own policy: metadata, center-of-mass, edge contrast, etc.</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">dicom_set</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>
+
+<span class="n">slice_index</span> <span class="o">=</span> <span class="n">pick_slice_by_metric</span><span class="p">(</span><span class="n">dicom_set</span><span class="p">)</span>
+<span class="n">hc</span> <span class="o">=</span> <span class="n">HighContrastAnalyzer</span><span class="p">(</span><span class="n">dicom_set</span><span class="o">=</span><span class="n">dicom_set</span><span class="p">,</span> <span class="n">slice_index</span><span class="o">=</span><span class="n">slice_index</span><span class="p">)</span>
+<span class="n">hc_res</span> <span class="o">=</span> <span class="n">hc</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="wrapper-helpers-common-methods">
+<h2>6) Wrapper helpers (common methods)<a class="headerlink" href="#wrapper-helpers-common-methods" title="Link to this heading"></a></h2>
+<p>Wrappers expose a small, consistent API:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze()</span></code> — run analysis and return results</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plot()</span></code> — return a <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze_and_plot()</span></code> — convenience that returns <code class="docutils literal notranslate"><span class="pre">(results,</span> <span class="pre">fig)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">save_plot(path)</span></code> — save the last figure</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_summary()</span></code> — short human-readable string</p></li>
+</ul>
+<p>Check the wrapper modules for constructor options; examples live in this file and in <code class="docutils literal notranslate"><span class="pre">docs/source/contents.md</span></code>.</p>
+</section>
+<section id="quick-smoke-test">
+<h2>7) Quick smoke test<a class="headerlink" href="#quick-smoke-test" title="Link to this heading"></a></h2>
+<p>Before building docs or packaging, run:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">-c</span> <span class="s2">&quot;import alexandria; print(alexandria.__version__)&quot;</span>
+</pre></div>
+</div>
+<hr class="docutils" />
+<p>If you want, I can now:</p>
+<ul class="simple">
+<li><p>scaffold a minimal Sphinx/<code class="docutils literal notranslate"><span class="pre">autodoc</span></code> site under <code class="docutils literal notranslate"><span class="pre">docs/source/</span></code>, or</p></li>
+<li><p>expand these examples into runnable Jupyter notebooks or small unit tests.</p></li>
+</ul>
+<p>Tell me which and I’ll proceed.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

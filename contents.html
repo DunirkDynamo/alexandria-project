@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alexandria Library Contents &mdash; alexandria 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            alexandria
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">alexandria</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Alexandria Library Contents</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/contents.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="alexandria-library-contents">
+<h1>Alexandria Library Contents<a class="headerlink" href="#alexandria-library-contents" title="Link to this heading"></a></h1>
+<p>Complete reference of all classes and functions in the Alexandria package (current layout).</p>
+<hr class="docutils" />
+<section id="architecture-overview">
+<h2>Architecture Overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h2>
+<p>The package groups functionality into:</p>
+<ol class="arabic simple">
+<li><p><strong>Analyzers</strong> — core image-analysis engines (uniformity, contrast, MTF, etc.)</p></li>
+<li><p><strong>Plotters</strong> — visualization helpers to render analyzer results</p></li>
+<li><p><strong>Wrappers</strong> — convenience module reporters combining analyzers and plotters</p></li>
+<li><p><strong>Utils</strong> — geometry and image-processing helpers used across modules</p></li>
+</ol>
+<p>This document lists the primary public classes, constructor parameters, and the outputs you can expect when calling the analysis routines.</p>
+</section>
+<hr class="docutils" />
+<section id="analyzers">
+<h2>Analyzers<a class="headerlink" href="#analyzers" title="Link to this heading"></a></h2>
+<section id="uniformityanalyzer">
+<h3><code class="docutils literal notranslate"><span class="pre">UniformityAnalyzer</span></code><a class="headerlink" href="#uniformityanalyzer" title="Link to this heading"></a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">alexandria.analyzers.uniformity</span></code></p>
+<p>Signature (constructor):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">UniformityAnalyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">roi_box_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span><span class="p">,</span>  <span class="c1"># mm</span>
+    <span class="n">roi_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">50.0</span>     <span class="c1"># mm</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Purpose: five-ROI uniformity analysis (centre, north, south, east, west). Supports single-image and DICOM-series (3-slice averaged) modes.</p>
+<p>Key methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze(verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True)</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze_uniformity()</span> <span class="pre">-&gt;</span> <span class="pre">Tuple[List,</span> <span class="pre">np.ndarray,</span> <span class="pre">List]</span></code> (compat return for some callers)</p></li>
+</ul>
+<p>Expected outputs: dictionary with per-ROI mean/std and a <code class="docutils literal notranslate"><span class="pre">uniformity</span></code> percentage, plus optional <code class="docutils literal notranslate"><span class="pre">roi_coordinates</span></code> and <code class="docutils literal notranslate"><span class="pre">boundary</span></code> for plotting</p>
+</section>
+<hr class="docutils" />
+<section id="detaileduniformityanalyzer">
+<h3><code class="docutils literal notranslate"><span class="pre">DetailedUniformityAnalyzer</span></code><a class="headerlink" href="#detaileduniformityanalyzer" title="Link to this heading"></a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">alexandria.analyzers.detailed_uniformity</span></code></p>
+<p>Signature:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">DetailedUniformityAnalyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">radii_mm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sample_step_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">360</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Purpose: sample concentric circular profiles and return angle/value series per radius for detailed uniformity inspection.</p>
+<p>Key methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze()</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code> — returns <code class="docutils literal notranslate"><span class="pre">profiles</span></code> (JSON-friendly) and metadata</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="highcontrastanalyzer">
+<h3><code class="docutils literal notranslate"><span class="pre">HighContrastAnalyzer</span></code><a class="headerlink" href="#highcontrastanalyzer" title="Link to this heading"></a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">alexandria.analyzers.high_contrast</span></code></p>
+<p>Signature:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">HighContrastAnalyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">t_offset_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">rotation_offset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lp_r_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">48.0</span><span class="p">,</span>
+    <span class="n">samples_per_segment</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="n">center_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mi">980</span><span class="p">,</span>
+    <span class="n">center_threshold_fallback</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mf">900.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Purpose: analyze CTP528 line-pair module, sample profiles, compute per-pair modulation and derive MTF curve and benchmark frequencies (MTF80/50/30/10).</p>
+<p>Key methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze(verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">write_log:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code></p></li>
+</ul>
+<p>Outputs: normalized MTF array, frequency axis <code class="docutils literal notranslate"><span class="pre">lp_axis</span></code>, and <code class="docutils literal notranslate"><span class="pre">mtf_points</span></code> mapping benchmark MTF levels to lp/mm</p>
+<p>Notes: DICOM-mode attempts to use a project-provided slice-selection routine when available, otherwise falls back to 3-slice averaging.</p>
+</section>
+<hr class="docutils" />
+<section id="ctp401analyzer">
+<h3><code class="docutils literal notranslate"><span class="pre">CTP401Analyzer</span></code><a class="headerlink" href="#ctp401analyzer" title="Link to this heading"></a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">alexandria.analyzers.ctp401</span></code></p>
+<p>Signature:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">CTP401Analyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">roi_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
+    <span class="n">material_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">58.5</span><span class="p">,</span>
+    <span class="n">edge_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100.0</span><span class="p">,</span>
+    <span class="n">center_finder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center_finder_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Purpose: linearity / material ROI analysis for the CTP401 module. Includes rotation detection utilities and spatial scaling checks.</p>
+<p>Key methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">detect_rotation(initial_angle_deg:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0)</span> <span class="pre">-&gt;</span> <span class="pre">float</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze(t_offset:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0,</span> <span class="pre">verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True)</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code></p></li>
+</ul>
+<p>Outputs: per-material ROI statistics, LCV estimates, and spatial scaling information.</p>
+</section>
+<hr class="docutils" />
+<section id="ctp404analyzer">
+<h3><code class="docutils literal notranslate"><span class="pre">CTP404Analyzer</span></code><a class="headerlink" href="#ctp404analyzer" title="Link to this heading"></a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">alexandria.analyzers.ctp404</span></code></p>
+<p>Signature:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">CTP404Analyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">rotation_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">roi_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
+    <span class="n">material_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
+    <span class="n">center_finder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center_finder_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Purpose: 9-ROI sensitometry analysis (multiple materials) producing contrast metrics and LCV.</p>
+<p>Key methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze(verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True)</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code></p></li>
+</ul>
+<p>Outputs: list of ROI contrast results and summary metrics.</p>
+</section>
+<hr class="docutils" />
+<section id="ctp515analyzer">
+<h3><code class="docutils literal notranslate"><span class="pre">CTP515Analyzer</span></code><a class="headerlink" href="#ctp515analyzer" title="Link to this heading"></a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">alexandria.analyzers.ctp515</span></code></p>
+<p>Signature:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">CTP515Analyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">angle_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center_finder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">center_finder_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Purpose: low-contrast detectability analysis for CTP515 (multiple circular inserts). Computes per-ROI CNR and detectability summaries.</p>
+<p>Key methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyze(verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True)</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code></p></li>
+</ul>
+<p>Outputs: per-ROI CNR/contrast values and <code class="docutils literal notranslate"><span class="pre">n_detected</span></code> count.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="plotters">
+<h2>Plotters<a class="headerlink" href="#plotters" title="Link to this heading"></a></h2>
+<p>Plotter classes take a completed analyzer instance and render figures for reporting.</p>
+<section id="uniformityplotter">
+<h3><code class="docutils literal notranslate"><span class="pre">UniformityPlotter</span></code><a class="headerlink" href="#uniformityplotter" title="Link to this heading"></a></h3>
+<p>Location: <code class="docutils literal notranslate"><span class="pre">alexandria.plotters.uniformity_plotter</span></code>
+Signature: <code class="docutils literal notranslate"><span class="pre">UniformityPlotter(analyzer:</span> <span class="pre">UniformityAnalyzer)</span></code></p>
+<p>Generates a 3x2 figure containing image + ROI overlays, histograms, table, boxplots, profiles, and a uniformity metric panel.</p>
+</section>
+<hr class="docutils" />
+<section id="detaileduniformityplotter">
+<h3><code class="docutils literal notranslate"><span class="pre">DetailedUniformityPlotter</span></code><a class="headerlink" href="#detaileduniformityplotter" title="Link to this heading"></a></h3>
+<p>Location: <code class="docutils literal notranslate"><span class="pre">alexandria.plotters.detailed_uniformity_plotter</span></code>
+Signature: <code class="docutils literal notranslate"><span class="pre">DetailedUniformityPlotter(analyzer:</span> <span class="pre">DetailedUniformityAnalyzer)</span></code></p>
+<p>Plots concentric profile traces and polar/linear visualizations per radius.</p>
+</section>
+<hr class="docutils" />
+<section id="highcontrastplotter">
+<h3><code class="docutils literal notranslate"><span class="pre">HighContrastPlotter</span></code><a class="headerlink" href="#highcontrastplotter" title="Link to this heading"></a></h3>
+<p>Location: <code class="docutils literal notranslate"><span class="pre">alexandria.plotters.high_contrast_plotter</span></code>
+Signature: <code class="docutils literal notranslate"><span class="pre">HighContrastPlotter(analyzer:</span> <span class="pre">HighContrastAnalyzer)</span></code></p>
+<p>Visualizes per-pair profiles, peak/trough diagnostics, and the combined MTF curve with annotated MTF benchmark points.</p>
+</section>
+<hr class="docutils" />
+<section id="ctp401plotter-ctp404plotter-ctp515plotter">
+<h3><code class="docutils literal notranslate"><span class="pre">CTP401Plotter</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP404Plotter</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP515Plotter</span></code><a class="headerlink" href="#ctp401plotter-ctp404plotter-ctp515plotter" title="Link to this heading"></a></h3>
+<p>Location: <code class="docutils literal notranslate"><span class="pre">alexandria.plotters.*</span></code></p>
+<p>Each plotter offers ROI overlays, labeled statistics, and a <code class="docutils literal notranslate"><span class="pre">plot()</span></code> method returning a <code class="docutils literal notranslate"><span class="pre">matplotlib.Figure</span></code>. See respective modules for plotting options and output layout.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="wrappers-modulereporters">
+<h2>Wrappers (ModuleReporters)<a class="headerlink" href="#wrappers-modulereporters" title="Link to this heading"></a></h2>
+<p>Convenience classes that create an analyzer and plotter and expose <code class="docutils literal notranslate"><span class="pre">analyze()</span></code>, <code class="docutils literal notranslate"><span class="pre">plot()</span></code>, <code class="docutils literal notranslate"><span class="pre">analyze_and_plot()</span></code>, <code class="docutils literal notranslate"><span class="pre">save_plot()</span></code>, and <code class="docutils literal notranslate"><span class="pre">get_summary()</span></code> helpers.</p>
+<p>Public wrappers exported in <code class="docutils literal notranslate"><span class="pre">alexandria.__init__</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">UniformityModuleReporter</span></code> — thin wrapper around <code class="docutils literal notranslate"><span class="pre">UniformityAnalyzer</span></code> + <code class="docutils literal notranslate"><span class="pre">UniformityPlotter</span></code> (constructor supports single-image and DICOM-series modes; see <code class="docutils literal notranslate"><span class="pre">wrappers/uniformity_wrapper.py</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HighContrastModuleReporter</span></code> — wrapper for MTF workflows (supports <code class="docutils literal notranslate"><span class="pre">lp_r_mm</span></code>, <code class="docutils literal notranslate"><span class="pre">samples_per_segment</span></code> arguments)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CTP401ModuleReporter</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP404ModuleReporter</span></code>, <code class="docutils literal notranslate"><span class="pre">CTP515ModuleReporter</span></code> — wrappers for the contrast/linearity/low-contrast modules</p></li>
+</ul>
+<p>Each wrapper module contains maintainers’ developer notes and example usage in <code class="docutils literal notranslate"><span class="pre">docs/source/USAGE_EXAMPLES.md</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Link to this heading"></a></h2>
+<section id="alexandria-utils-geometry-catphangeometry">
+<h3><code class="docutils literal notranslate"><span class="pre">alexandria.utils.geometry.CatPhanGeometry</span></code><a class="headerlink" href="#alexandria-utils-geometry-catphangeometry" title="Link to this heading"></a></h3>
+<p>Useful helpers for center finding, boundary construction, rotation detection, and slice-selection notes.</p>
+<p>Key routines:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">find_center(image,</span> <span class="pre">threshold=400)</span> <span class="pre">-&gt;</span> <span class="pre">(center,</span> <span class="pre">[outer_x,</span> <span class="pre">outer_y])</span></code> — 1D profile edge detection fallback behavior documented in code</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">select_optimal_ctp528_slices(dicom_set,</span> <span class="pre">target_index,</span> <span class="pre">search_range=2)</span></code> — intentionally left unimplemented in shared package; application projects should provide selection policy</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">calculate_slice_thickness(image,</span> <span class="pre">pixel_spacing,</span> <span class="pre">center)</span></code> — placeholder</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">circular_roi_mask(shape,</span> <span class="pre">center,</span> <span class="pre">radius)</span> <span class="pre">-&gt;</span> <span class="pre">np.ndarray</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compute_phantom_boundary(image,</span> <span class="pre">center,</span> <span class="pre">pixel_spacing=None,</span> <span class="pre">threshold=-900,</span> <span class="pre">fallback_threshold=-900)</span></code> — robust fallback to nominal radius when edge detection fails</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">draw_boundary(center,</span> <span class="pre">diameter_x_px,</span> <span class="pre">diameter_y_px,</span> <span class="pre">n_points=100)</span></code> — ellipse boundary builder</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">find_center_edge_detection(img,</span> <span class="pre">threshold=-900,</span> <span class="pre">fallback_threshold=-900,</span> <span class="pre">return_diameters=False)</span></code> — XVI-style center finder</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">find_rotation(image,</span> <span class="pre">center,</span> <span class="pre">pixel_spacing,</span> <span class="pre">...)</span> <span class="pre">-&gt;</span> <span class="pre">(rotation_deg,</span> <span class="pre">top_point,</span> <span class="pre">bottom_point)</span></code> — robust rotation detection with documented angle conventions</p></li>
+</ul>
+</section>
+</section>
+<section id="image-processing-utilities">
+<h2>Image Processing Utilities<a class="headerlink" href="#image-processing-utilities" title="Link to this heading"></a></h2>
+<section id="alexandria-utils-image-processing-imageprocessor">
+<h3><code class="docutils literal notranslate"><span class="pre">alexandria.utils.image_processing.ImageProcessor</span></code><a class="headerlink" href="#alexandria-utils-image-processing-imageprocessor" title="Link to this heading"></a></h3>
+<p>Stateless helper methods (all <code class="docutils literal notranslate"><span class="pre">&#64;staticmethod</span></code>):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">apply_gaussian_filter(image,</span> <span class="pre">sigma=1.0)</span> <span class="pre">-&gt;</span> <span class="pre">np.ndarray</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extract_profile(image,</span> <span class="pre">start,</span> <span class="pre">end,</span> <span class="pre">n_points=100)</span> <span class="pre">-&gt;</span> <span class="pre">np.ndarray</span></code> — subpixel sampling via <code class="docutils literal notranslate"><span class="pre">scipy.interpolate.interpn</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">threshold_image(image,</span> <span class="pre">threshold,</span> <span class="pre">mode='above')</span> <span class="pre">-&gt;</span> <span class="pre">np.ndarray</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">estimate_noise(image,</span> <span class="pre">roi_center=None,</span> <span class="pre">roi_size=50)</span> <span class="pre">-&gt;</span> <span class="pre">float</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">find_edges(image,</span> <span class="pre">method='sobel')</span> <span class="pre">-&gt;</span> <span class="pre">np.ndarray</span></code> — supports ‘sobel’, ‘prewitt’, and ‘scharr’</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="usage-examples">
+<h2>Usage &amp; Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
+<p>See <code class="docutils literal notranslate"><span class="pre">docs/source/USAGE_EXAMPLES.md</span></code> for runnable examples illustrating single-image and DICOM-series usage patterns, wrapper convenience workflows, and advanced notes (slice selection and ROI masking).</p>
+<hr class="docutils" />
+<p>If you want, I can now generate a table-of-contents <code class="docutils literal notranslate"><span class="pre">index.rst</span></code> and a minimal Sphinx <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> under <code class="docutils literal notranslate"><span class="pre">docs/source/</span></code> and wire up <code class="docutils literal notranslate"><span class="pre">autodoc</span></code> entries for the modules above. Would you like me to scaffold that next?</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
