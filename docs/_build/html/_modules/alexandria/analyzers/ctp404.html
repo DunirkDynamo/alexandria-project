@@ -1,0 +1,481 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>alexandria.analyzers.ctp404 &mdash; alexandria 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            alexandria
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">alexandria</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">alexandria.analyzers.ctp404</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for alexandria.analyzers.ctp404</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">CTP404 Analyzer - Contrast and Sensitometry Module</span>
+
+<span class="sd">Unified analyzer for CTP404 sensitometry analysis, combining functionality</span>
+<span class="sd">from catphan404 and XVI-CatPhan implementations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndimage</span>
+
+
+<div class="viewcode-block" id="CTP404Analyzer">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP404Analyzer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CTP404Analyzer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Unified CTP404 sensitometry analyzer.</span>
+
+<span class="sd">    This analyzer computes mean and standard deviation values for the</span>
+<span class="sd">    standard CatPhan CTP404 contrast module which contains nine circular</span>
+<span class="sd">    ROIs containing different materials. The implementation supports two</span>
+<span class="sd">    initialization modes:</span>
+
+<span class="sd">    - Single-image mode: caller passes a prepared 2D NumPy image array</span>
+<span class="sd">      via the ``image`` parameter.</span>
+<span class="sd">    - DICOM-series mode: caller provides a list of pydicom dataset</span>
+<span class="sd">      objects and a ``slice_index``; the analyzer will form a simple</span>
+<span class="sd">      3-slice average to improve SNR before analysis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Material names for each ROI (9 ROIs)</span>
+    <span class="n">MATERIALS</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;Delrin&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="s1">&#39;Acrylic&#39;</span><span class="p">,</span> <span class="s1">&#39;Air&#39;</span><span class="p">,</span> <span class="s1">&#39;Polystyrene&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;LDPE&#39;</span><span class="p">,</span> <span class="s1">&#39;PMP&#39;</span><span class="p">,</span> <span class="s1">&#39;Teflon&#39;</span><span class="p">,</span> <span class="s1">&#39;Air2&#39;</span>
+    <span class="p">]</span>
+    
+    <span class="c1"># ROI angles (degrees) relative to phantom rotation</span>
+    <span class="n">ROI_ANGLES</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="o">-</span><span class="mi">120</span><span class="p">,</span> <span class="o">-</span><span class="mi">60</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">]</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dicom_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slice_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">center</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pixel_spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spacing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rotation_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">roi_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span>
+        <span class="n">material_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">58.5</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># Initialize image source and analysis mode. We accept either a</span>
+        <span class="c1"># pre-built NumPy image (convenient for unit tests and scripted</span>
+        <span class="c1"># workflows) or a DICOM series + slice index. In DICOM mode we</span>
+        <span class="c1"># produce a simple 3-slice average to reduce noise prior to ROI</span>
+        <span class="c1"># measurements.</span>
+        <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;single&#39;</span>
+        <span class="k">elif</span> <span class="n">dicom_set</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">slice_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span> <span class="o">=</span> <span class="n">dicom_set</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">slice_index</span> <span class="o">=</span> <span class="n">slice_index</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_averaged_image</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;dicom&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must provide either &#39;image&#39; or both &#39;dicom_set&#39; and &#39;slice_index&#39;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Validate and store center coordinates. Center must be provided</span>
+        <span class="c1"># by the caller (or detected externally) because ROI placement</span>
+        <span class="c1"># depends on an accurate location.</span>
+        <span class="k">if</span> <span class="n">center</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must provide &#39;center&#39; as (x, y) tuple&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">center</span>
+
+        <span class="c1"># Pixel spacing: prefer explicit parameter, fall back to DICOM</span>
+        <span class="c1"># metadata when available. PixelSpacing may be a sequence (e.g.</span>
+        <span class="c1"># pydicom MultiValue) so we extract the first element.</span>
+        <span class="k">if</span> <span class="n">pixel_spacing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="n">pixel_spacing</span>
+        <span class="k">elif</span> <span class="n">spacing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="n">spacing</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dicom_set</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">slice_index</span><span class="p">]</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must provide &#39;pixel_spacing&#39; or &#39;spacing&#39;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Store remaining configuration options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span> <span class="o">=</span> <span class="n">rotation_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roi_radius</span> <span class="o">=</span> <span class="n">roi_radius</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span> <span class="o">=</span> <span class="n">material_distance</span>
+
+        <span class="c1"># Prepare containers for results and plotting coordinates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roi_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slice_thickness</span> <span class="o">=</span> <span class="kc">None</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_averaged_image</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create 3-slice averaged image for improved SNR.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Averaged image array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slice_index</span>
+        <span class="c1"># Safely form a 3-slice average. When the selected index is at</span>
+        <span class="c1"># the series endpoints we duplicate the adjacent slice to keep</span>
+        <span class="c1"># the averaging scheme consistent and avoid index errors.</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">im1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>  <span class="c1"># Repeat neighbor slice</span>
+        <span class="k">elif</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">im1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>  <span class="c1"># Repeat neighbor slice</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">im1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+            <span class="n">im3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
+
+        <span class="c1"># Convert to float before averaging to avoid integer truncation</span>
+        <span class="n">averaged_image</span> <span class="o">=</span> <span class="p">(</span><span class="n">im1</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im2</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im3</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span> <span class="o">/</span> <span class="mf">3.0</span>
+        <span class="k">return</span> <span class="n">averaged_image</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_circular_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">center</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a boolean circular mask.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            center: (x, y) center coordinates</span>
+<span class="sd">            radius: Radius in pixels</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Boolean mask array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create a distance map from the requested center and threshold</span>
+        <span class="c1"># it to form a boolean mask. Using np.ogrid is memory-efficient</span>
+        <span class="c1"># for large images because it avoids building full coordinate</span>
+        <span class="c1"># grids.</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">Y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ogrid</span><span class="p">[:</span><span class="n">h</span><span class="p">,</span> <span class="p">:</span><span class="n">w</span><span class="p">]</span>
+        <span class="n">dist_from_center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">Y</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dist_from_center</span> <span class="o">&lt;=</span> <span class="n">radius</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_roi_circle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle_deg</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute ROI circle coordinates at specified angle.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            angle_deg: Angle in degrees from center</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (x_coords, y_coords) for circle perimeter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span>
+        <span class="c1"># Convert the analyzer&#39;s image-oriented ROI angle into a math-</span>
+        <span class="c1"># based angle by subtracting the CCW-positive rotation offset.</span>
+        <span class="c1"># This keeps ROI placement consistent regardless of phantom</span>
+        <span class="c1"># rotation detected elsewhere in the pipeline.</span>
+        <span class="n">angle_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">angle_deg</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span><span class="p">)</span>
+
+        <span class="c1"># Convert configured distances from millimeters to pixels using</span>
+        <span class="c1"># the stored pixel spacing.</span>
+        <span class="n">dist_px</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span>
+
+        <span class="c1"># Compute ROI center coordinates in pixel units</span>
+        <span class="n">roi_x</span> <span class="o">=</span> <span class="n">cx</span> <span class="o">+</span> <span class="n">dist_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">)</span>
+        <span class="n">roi_y</span> <span class="o">=</span> <span class="n">cy</span> <span class="o">+</span> <span class="n">dist_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">)</span>
+
+        <span class="c1"># Build a sampled circle perimeter for plotting overlays.</span>
+        <span class="n">radius_px</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roi_radius</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="n">x_circle</span> <span class="o">=</span> <span class="n">roi_x</span> <span class="o">+</span> <span class="n">radius_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">y_circle</span> <span class="o">=</span> <span class="n">roi_y</span> <span class="o">+</span> <span class="n">radius_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_circle</span><span class="p">,</span> <span class="n">y_circle</span>
+
+<div class="viewcode-block" id="CTP404Analyzer.detect_rotation">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP404Analyzer.detect_rotation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_angle_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Detect phantom rotation using insert positions (delegates to shared utility).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            initial_angle_deg: Initial rotation guess in degrees (default 0)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Rotation angle in degrees (sets and returns `self.rotation_offset`)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Defer imports to avoid circular imports</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_rotation</span><span class="p">,</span> <span class="n">find_center_edge_detection</span>
+
+        <span class="c1"># If center somehow missing, attempt edge-based center finding</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">center_row</span><span class="p">,</span> <span class="n">center_col</span> <span class="o">=</span> <span class="n">find_center_edge_detection</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span>
+                <span class="n">fallback_threshold</span><span class="o">=-</span><span class="mf">900.0</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="n">center_col</span><span class="p">,</span> <span class="n">center_row</span><span class="p">)</span>
+
+        <span class="n">rotation_angle</span><span class="p">,</span> <span class="n">top_pt</span><span class="p">,</span> <span class="n">bottom_pt</span> <span class="o">=</span> <span class="n">find_rotation</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span><span class="p">,</span>
+            <span class="n">insert_radius_mm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span><span class="p">,</span>
+            <span class="n">edge_threshold</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>
+            <span class="n">center_threshold</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+            <span class="n">iterations</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+            <span class="n">profile_length</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+            <span class="n">granularity</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">interp_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;bounds_error&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;fill_value&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+            <span class="n">initial_angle_deg</span><span class="o">=</span><span class="n">initial_angle_deg</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Store detected rotation and points for potential external use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rotation_angle</span><span class="p">)</span>
+        <span class="c1"># store top/bottom air ROI centers for external spatial-scaling use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation_top_point</span> <span class="o">=</span> <span class="n">top_pt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation_bottom_point</span> <span class="o">=</span> <span class="n">bottom_pt</span>
+        <span class="c1"># Return the rotation and the top/bottom insert center points.</span>
+        <span class="c1"># Some callers expect the tuple (angle, top_pt, bottom_pt) while</span>
+        <span class="c1"># others request only the angle; returning the full tuple keeps</span>
+        <span class="c1"># the method flexible.</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span><span class="p">),</span> <span class="n">top_pt</span><span class="p">,</span> <span class="n">bottom_pt</span></div>
+
+    
+<div class="viewcode-block" id="CTP404Analyzer.analyze">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP404Analyzer.analyze">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform contrast analysis on all 9 ROIs.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            verbose: Print progress information</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary containing analysis results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Analyzing CTP404 contrast module...&quot;</span><span class="p">)</span>
+
+        <span class="n">contrast_results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roi_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Iterate over the configured ROI angles and material labels and</span>
+        <span class="c1"># compute mean/std for each circular ROI. The ROI angles are</span>
+        <span class="c1"># defined in image-oriented degrees; we subtract the detected</span>
+        <span class="c1"># CCW-positive rotation offset to obtain the final placement.</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="n">material</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ROI_ANGLES</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MATERIALS</span><span class="p">)):</span>
+            <span class="n">cx</span><span class="p">,</span> <span class="n">cy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span>
+            <span class="n">angle_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">angle</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span><span class="p">)</span>
+            <span class="n">dist_px</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span>
+
+            <span class="c1"># Compute ROI center in pixel coordinates</span>
+            <span class="n">roi_x</span> <span class="o">=</span> <span class="n">cx</span> <span class="o">+</span> <span class="n">dist_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">)</span>
+            <span class="n">roi_y</span> <span class="o">=</span> <span class="n">cy</span> <span class="o">+</span> <span class="n">dist_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle_rad</span><span class="p">)</span>
+
+            <span class="n">radius_mm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roi_radius</span>
+            <span class="n">radius_px</span> <span class="o">=</span> <span class="n">radius_mm</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span>
+
+            <span class="c1"># Create boolean mask for the circular ROI and sample image</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_circular_mask</span><span class="p">((</span><span class="n">roi_x</span><span class="p">,</span> <span class="n">roi_y</span><span class="p">),</span> <span class="n">radius_px</span><span class="p">)</span>
+            <span class="n">roi_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+            <span class="c1"># Aggregate statistics for this ROI</span>
+            <span class="n">mean_hu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">roi_values</span><span class="p">))</span>
+            <span class="n">std_hu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">roi_values</span><span class="p">))</span>
+
+            <span class="n">contrast_results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;roi_number&#39;</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;material&#39;</span><span class="p">:</span> <span class="n">material</span><span class="p">,</span>
+                <span class="s1">&#39;angle_deg&#39;</span><span class="p">:</span> <span class="n">angle</span><span class="p">,</span>
+                <span class="s1">&#39;roi_radius_mm&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">radius_mm</span><span class="p">),</span>
+                <span class="s1">&#39;mean_hu&#39;</span><span class="p">:</span> <span class="n">mean_hu</span><span class="p">,</span>
+                <span class="s1">&#39;std_hu&#39;</span><span class="p">:</span> <span class="n">std_hu</span><span class="p">,</span>
+                <span class="s1">&#39;center_x&#39;</span><span class="p">:</span> <span class="n">roi_x</span><span class="p">,</span>
+                <span class="s1">&#39;center_y&#39;</span><span class="p">:</span> <span class="n">roi_y</span>
+            <span class="p">})</span>
+
+            <span class="c1"># Store polygon/perimeter coordinates for plotting overlays</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="n">x_circle</span> <span class="o">=</span> <span class="n">roi_x</span> <span class="o">+</span> <span class="n">radius_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">y_circle</span> <span class="o">=</span> <span class="n">roi_y</span> <span class="o">+</span> <span class="n">radius_px</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">roi_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x_circle</span><span class="p">,</span> <span class="n">y_circle</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  ROI </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">material</span><span class="si">:</span><span class="s2">12s</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">mean_hu</span><span class="si">:</span><span class="s2">7.1f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">std_hu</span><span class="si">:</span><span class="s2">5.1f</span><span class="si">}</span><span class="s2"> HU&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Calculate Low Contrast Visibility (LCV)</span>
+        <span class="c1"># LCV is calculated from specific material pairs</span>
+        <span class="n">lcv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_lcv</span><span class="p">(</span><span class="n">contrast_results</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;contrast&#39;</span><span class="p">:</span> <span class="n">contrast_results</span><span class="p">,</span>
+            <span class="s1">&#39;LCV_percent&#39;</span><span class="p">:</span> <span class="n">lcv</span><span class="p">,</span>
+            <span class="s1">&#39;rotation_offset&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span><span class="p">,</span>
+            <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span>
+        <span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Low Contrast Visibility: </span><span class="si">{</span><span class="n">lcv</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_lcv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contrast_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate Low Contrast Visibility from material ROIs.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            contrast_results: List of ROI analysis results</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            LCV percentage</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Find relevant materials for LCV calculation. The classic LCV</span>
+        <span class="c1"># metric compares two low-contrast inserts (commonly Polystyrene</span>
+        <span class="c1"># vs Acrylic) and expresses the difference as a percentage.</span>
+        <span class="n">polystyrene</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">acrylic</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="n">contrast_results</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;material&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Polystyrene&#39;</span><span class="p">:</span>
+                <span class="n">polystyrene</span> <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;mean_hu&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;material&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Acrylic&#39;</span><span class="p">:</span>
+                <span class="n">acrylic</span> <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;mean_hu&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">polystyrene</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">acrylic</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># LCV = |HU1 - HU2| / |HU_ref| * 100 — use the acrylic</span>
+            <span class="c1"># value as a practical reference. If the reference happens</span>
+            <span class="c1"># to be zero we fall back to an absolute difference to avoid</span>
+            <span class="c1"># division-by-zero.</span>
+            <span class="k">if</span> <span class="n">acrylic</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">lcv</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">polystyrene</span> <span class="o">-</span> <span class="n">acrylic</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">acrylic</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lcv</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">polystyrene</span> <span class="o">-</span> <span class="n">acrylic</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lcv</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">lcv</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="CTP404Analyzer.get_results_summary">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP404Analyzer.get_results_summary">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_results_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get formatted summary of analysis results.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Multi-line string summary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;No analysis results available. Run analyze() first.&quot;</span>
+        
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CTP404 Contrast Analysis Results&quot;</span><span class="p">,</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">40</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;contrast&#39;</span><span class="p">]:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ROI </span><span class="si">{</span><span class="n">roi</span><span class="p">[</span><span class="s1">&#39;roi_number&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">roi</span><span class="p">[</span><span class="s1">&#39;material&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">12s</span><span class="si">}</span><span class="s2">): &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">roi</span><span class="p">[</span><span class="s1">&#39;mean_hu&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">7.1f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">roi</span><span class="p">[</span><span class="s1">&#39;std_hu&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">5.1f</span><span class="si">}</span><span class="s2"> HU&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Low Contrast Visibility: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;LCV_percent&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Rotation Offset: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;rotation_offset&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">°&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="CTP404Analyzer.to_dict">
+<a class="viewcode-back" href="../../../api.html#alexandria.CTP404Analyzer.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Export results as dictionary.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Results dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
