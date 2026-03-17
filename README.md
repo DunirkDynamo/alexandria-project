@@ -7,8 +7,10 @@
 ### Comprehensive Analysis Modules
 
 - **UniformityAnalyzer** (CTP486) - Measures image uniformity across 5 ROIs
-- **HighContrastAnalyzer** (CTP528) - Line pair resolution and MTF analysis  
-- **CTP401Analyzer** (CTP401/404) - Material contrast, HU accuracy, rotation detection
+- **DetailedUniformityAnalyzer** - Concentric profile sampling for detailed uniformity inspection
+- **HighContrastAnalyzer** (CTP528) - Line pair resolution and MTF analysis
+- **CTP401Analyzer** (CTP401) - Material contrast, HU accuracy, rotation detection
+- **CTP404Analyzer** (CTP404) - 9-ROI sensitometry / material measurement
 - **CTP515Analyzer** (CTP515) - Low-contrast detectability and CNR measurements
 
 ### Dual Operation Modes
@@ -164,6 +166,23 @@ src/
 ```
 
 Documentation source now lives at `docs/source` and built HTML appears in `docs/_build/html`.
+
+## Plotters
+
+Each analyzer has a corresponding plotter in `alexandria.plotters` that renders figures from an analyzer instance. Plotters read both the analyzer results and key parameters (ROI coordinates, `pixel_spacing`, `center`, `boundary`, etc.) so their output matches the analysis configuration. Available plotters include:
+
+- `UniformityPlotter` — visualizes image, ROI overlays, histograms and uniformity panels
+- `DetailedUniformityPlotter` — concentric profile traces and polar/linear views
+- `HighContrastPlotter` — per-pair profiles and combined MTF curve with annotated benchmarks
+- `CTP401Plotter`, `CTP404Plotter`, `CTP515Plotter` — plot ROI overlays and labeled statistics for each module
+
+Use plotters by passing an analyzer instance, e.g.:
+
+```python
+from alexandria.plotters.uniformity_plotter import UniformityPlotter
+plotter = UniformityPlotter(uniformity_analyzer)
+fig = plotter.plot()
+```
 
 ## Integration with Existing Projects
 
