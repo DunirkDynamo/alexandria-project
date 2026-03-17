@@ -237,7 +237,7 @@ Public wrappers exported in `alexandria.__init__`:
 - `HighContrastModuleReporter` — wrapper for MTF workflows (supports `lp_r_mm`, `samples_per_segment` arguments)
 - `CTP401ModuleReporter`, `CTP404ModuleReporter`, `CTP515ModuleReporter` — wrappers for the contrast/linearity/low-contrast modules
 
-Each wrapper module contains maintainers' developer notes and example usage in `docs/source/USAGE_EXAMPLES.md` (see the docs directory).
+Each wrapper module contains maintainers' developer notes and example usage in `docs/source/USAGE_EXAMPLES.md`.
 
 ---
 

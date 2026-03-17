@@ -28,9 +28,12 @@ Each analyzer supports two modes:
 ## Installation
 
 ```bash
-# Install from source
-cd alexandria
-pip install -e .
+# Install from source (recommended: run from the repository root)
+pip install -e .[docs]
+
+# Alternatively, if you have a separate clone of the package folder:
+# cd alexandria
+# pip install -e .[docs]
 
 # Or install from PyPI (when published)
 pip install alexandria
@@ -146,18 +149,21 @@ analyzer = CTP401Analyzer(
 
 ## Architecture
 
-Alexandria is designed with modularity and reusability in mind:
+With the `src/` layout the package source lives under `src/alexandria`:
 
 ```
-alexandria/
-├── analyzers/          # Core analysis modules
-│   ├── uniformity.py   # CTP486 uniformity
-│   ├── high_contrast.py # CTP528 resolution/MTF
-│   ├── ctp401.py       # CTP401/404 contrast
-│   └── ctp515.py       # CTP515 low-contrast
-├── plotters/           # Visualization modules
-└── utils/              # Shared utilities
+src/
+└── alexandria/
+    ├── analyzers/          # Core analysis modules
+    │   ├── uniformity.py   # CTP486 uniformity
+    │   ├── high_contrast.py # CTP528 resolution/MTF
+    │   ├── ctp401.py       # CTP401/404 contrast
+    │   └── ctp515.py       # CTP515 low-contrast
+    ├── plotters/           # Visualization modules
+    └── utils/              # Shared utilities
 ```
+
+Documentation source now lives at `docs/source` and built HTML appears in `docs/_build/html`.
 
 ## Integration with Existing Projects
 
@@ -180,6 +186,17 @@ from catphan_analysis.modules.ctp486 import CTP486Module
 # New
 from alexandria import UniformityAnalyzer  # Unified interface
 ```
+
+## Future Scope
+
+Alexandria is intentionally starting with CatPhan analysis, but the long-term goal is a broader medical-physics toolkit for phantom-based QA and research. Planned expansions include:
+
+- Support for additional phantom types and modules (beyond CatPhan), with consistent analyzer and reporter APIs.
+- Common utilities for phantom I/O, simulated phantoms, standardized ROI definitions, and QA metrics that apply across phantom families.
+- Reusable plotting, reporting, and JSON results schemas to make outputs easy to integrate into CI or clinical QA dashboards.
+- Example notebooks, dataset loaders, and validation tests to help users adapt Alexandria to new phantom designs and workflows.
+
+Contributions that add new phantom modules, helpers, or integration examples are encouraged — the project aims to be a shared foundation for medical-physics phantom analysis.
 
 ## Design Principles
 
