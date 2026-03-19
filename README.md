@@ -162,7 +162,10 @@ src/
     │   ├── ctp401.py       # CTP401/404 contrast
     │   └── ctp515.py       # CTP515 low-contrast
     ├── plotters/           # Visualization modules
+    ├── wrappers/           # Convenience reporters (analyzer + plotter)
     └── utils/              # Shared utilities
+
+Wrappers in `alexandria.wrappers` provide small, consistent entrypoints that orchestrate an analyzer and its plotter for simple scripting and reporting workflows.
 ```
 
 Documentation source now lives at `docs/source` and built HTML appears in `docs/_build/html`.
