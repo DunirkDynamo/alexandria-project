@@ -275,5 +275,3 @@ Stateless helper methods (all `@staticmethod`):
 See `docs/source/USAGE_EXAMPLES.md` for runnable examples illustrating single-image and DICOM-series usage patterns, wrapper convenience workflows, and advanced notes (slice selection and ROI masking).
 
 ---
-
-If you want, I can now generate a table-of-contents `index.rst` and a minimal Sphinx `conf.py` under `docs/source/` and wire up `autodoc` entries for the modules above. Would you like me to scaffold that next?
