@@ -38,7 +38,7 @@ pip install -e .[docs]
 # pip install -e .[docs]
 
 # Or install from PyPI (when published)
-pip install alexandria
+pip install alexandria-project
 ```
 
 ## Quick Start

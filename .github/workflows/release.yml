@@ -6,6 +6,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,25 +21,20 @@ jobs:
       - name: Install tooling
         run: |
           python -m pip install --upgrade pip build twine black isort flake8
-        working-directory: alexandria
 
       - name: Quick style checks
         run: |
           black --check . || true
           isort --check-only . || true
           flake8 || true
-        working-directory: alexandria
 
       - name: Build distributions
         run: |
           python -m build --sdist --wheel
-        working-directory: alexandria
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.5.1
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-        env:
-          TWINE_REPOSITORY: pypi
-        working-directory: alexandria
+          # No password/token line needed here!
+          # The action finds the id-token automatically.
+          print-hash: true
