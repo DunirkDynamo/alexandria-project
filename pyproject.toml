@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools_scm>=6.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "alexandria"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Unified CatPhan phantom analysis library - combining best features from multiple implementations"
 authors = [
     { name = "Medical Physics Team", email = "your.email@example.com" }
@@ -45,5 +45,11 @@ Repository = "https://github.com/your/alexandria"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["alexandria*"]
+
+[tool.setuptools_scm]
+write_to = "src/alexandria/_version.py"
+write_to_template = '__version__ = "{version}"\n'
+version_scheme = "post-release"
+local_scheme = "node-and-date"
 
 

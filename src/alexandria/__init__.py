@@ -5,7 +5,12 @@ A comprehensive library for analyzing CatPhan CT phantom DICOM images.
 Provides modular analyzers for uniformity, resolution, contrast, and linearity analysis.
 """
 
-__version__ = "1.0.0"
+try:
+    # `setuptools_scm` will write the current version to `_version.py` during build
+    from ._version import __version__  # type: ignore
+except Exception:
+    # Fallback when package isn't installed via setuptools (dev/editable installs)
+    __version__ = "0+unknown"
 
 # Core analyzers (imported lazily by subpackages)
 from .analyzers.uniformity import UniformityAnalyzer
