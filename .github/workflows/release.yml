@@ -8,13 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Required for Trusted Publishing
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6 # Updated to v6
+        with:
+          fetch-depth: 0 # Important for setuptools-scm to see tags
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6 # Updated to v6
         with:
           python-version: '3.x'
 
@@ -35,6 +37,5 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # No password/token line needed here!
-          # The action finds the id-token automatically.
           print-hash: true
+          verbose: true # Added this to reveal the 400 error details
