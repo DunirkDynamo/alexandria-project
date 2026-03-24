@@ -140,24 +140,32 @@ class CTP401Analyzer:
         """
         idx = self.slice_index
 
-        # Safely handle edge cases near the ends of the series by repeating
-        # the nearest available neighbor rather than raising an IndexError.
-        if idx == 0:
-            im1 = self.dicom_set[idx].pixel_array
-            im2 = self.dicom_set[idx + 1].pixel_array
-            im3 = self.dicom_set[idx + 1].pixel_array  # Repeat next slice
-        elif idx == len(self.dicom_set) - 1:
-            im1 = self.dicom_set[idx].pixel_array
-            im2 = self.dicom_set[idx - 1].pixel_array
-            im3 = self.dicom_set[idx - 1].pixel_array  # Repeat previous slice
-        else:
-            im1 = self.dicom_set[idx].pixel_array
-            im2 = self.dicom_set[idx + 1].pixel_array
-            im3 = self.dicom_set[idx - 1].pixel_array
+        # Prefer averaging distinct slices. If the series is too short to form a
+        # three-slice average, fall back to a two-slice average (current + neighbor)
+        # instead of counting any slice twice.
+        n = len(self.dicom_set)
+        if n == 0:
+            raise ValueError("dicom_set is empty")
 
-        # Convert to float before averaging to preserve fractional values.
-        averaged_image = (im1.astype(float) + im2.astype(float) + im3.astype(float)) / 3.0
-        return averaged_image
+        # Single-slice series: return the slice as float image
+        if n == 1:
+            return self.dicom_set[0].pixel_array.astype(float)
+
+        # Edge cases: use a two-slice average (current + neighbor)
+        if idx <= 0:
+            im0 = self.dicom_set[0].pixel_array.astype(float)
+            im1 = self.dicom_set[1].pixel_array.astype(float)
+            return (im0 + im1) / 2.0
+        if idx >= n - 1:
+            imm1 = self.dicom_set[n - 2].pixel_array.astype(float)
+            imn = self.dicom_set[n - 1].pixel_array.astype(float)
+            return (imm1 + imn) / 2.0
+
+        # Typical case: average previous, current, and next slices
+        im_prev = self.dicom_set[idx - 1].pixel_array.astype(float)
+        im_curr = self.dicom_set[idx].pixel_array.astype(float)
+        im_next = self.dicom_set[idx + 1].pixel_array.astype(float)
+        return (im_prev + im_curr + im_next) / 3.0
     
     def _create_circular_mask(
         self,
