@@ -125,7 +125,7 @@ class CTP515Plotter:
         spacing      = self.analyzer.pixel_spacing
         bg_dist_px   = bg_dist_mm / spacing
         bg_radius_px = bg_radius_mm / spacing
-        cy, cx = int(self.center[1]), int(self.center[0])
+        cy, cx = self.center[1], self.center[0]
         bg_x   = cx + bg_dist_px * np.cos(bg_angle_rad)
         bg_y   = cy + bg_dist_px * np.sin(bg_angle_rad)
         bg_color = 'red'

@@ -224,12 +224,12 @@ class CTP515Analyzer:
         if self.center is None:
             from alexandria.utils import find_center_edge_detection, compute_phantom_boundary, draw_boundary
 
-            def _unpack_center_result(value: Any) -> Tuple[int, int, Optional[float], Optional[float]]:
+            def _unpack_center_result(value: Any) -> Tuple[float, float, Optional[float], Optional[float]]:
                 if isinstance(value, (tuple, list)):
                     if len(value) >= 4:
-                        return int(value[0]), int(value[1]), value[2], value[3]
+                        return float(value[0]), float(value[1]), value[2], value[3]
                     if len(value) == 2:
-                        return int(value[0]), int(value[1]), None, None
+                        return float(value[0]), float(value[1]), None, None
                 raise ValueError(
                     "center_finder must return (row, col) or (row, col, diameter_y_px, diameter_x_px)"
                 )
@@ -340,8 +340,8 @@ class CTP515Analyzer:
             r_delta = float((x_delta**2 + y_delta**2)**0.5)
 
             results[f'roi_{roi_name}mm'] = {
-                'x': int(x_full),
-                'y': int(y_full),
+                'x': float(x_full),
+                'y': float(y_full),
                 'r': float(radius_px),
                 'x_delta': x_delta,
                 'y_delta': y_delta,

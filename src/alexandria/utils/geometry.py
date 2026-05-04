@@ -128,8 +128,8 @@ def find_center_edge_detection(img: np.ndarray, threshold: float = -900, fallbac
             if return_diameters:
                 return matrix_c[0], matrix_c[1], None, None
             return matrix_c[0], matrix_c[1]
-    center_col = int((x1 + x2) / 2)
-    center_row = int((y1 + y2) / 2)
+    center_col = (x1 + x2) / 2.0
+    center_row = (y1 + y2) / 2.0
     if return_diameters:
         diameter_x = float(x2 - x1)
         diameter_y = float(y2 - y1)
