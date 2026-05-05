@@ -382,14 +382,47 @@ class CTP401Analyzer:
         self.scale = {'scaleX_cm': scaleX, 'scaleY_cm': scaleY}
         return self.scale
     
-    def detect_rotation(self, initial_angle_deg: float = 0.0) -> float:
+    def detect_rotation(self, initial_angle_deg: float = 0.0):
         """
         Detect phantom rotation using material insert positions.
-        
-        Finds the Air insert (90°, top) and Acrylic insert (270°, bottom) and 
-        calculates rotation based on their offset from vertical alignment. 
-        Uses iterative refinement with safety threshold to prevent invalid results.
+
+        Locates the Air (90°) and Acrylic (270°) inserts via iterative edge
+        detection and calculates rotation from their deviation from vertical
+        alignment.
+
+        Args:
+            initial_angle_deg: Initial rotation guess in degrees (default 0).
+
+        Returns:
+            Tuple of (rotation_angle_deg, top_point, bottom_point).
+            rotation_angle_deg is also stored as ``self.rotation_offset``.
         """
-        # Implementation omitted in the copied excerpt to keep file concise for initial migration.
-        # The full implementation remains in the original package and will be migrated next.
-        return initial_angle_deg
+        from alexandria.utils import find_rotation, find_center_edge_detection
+
+        # Ensure center is available before calling find_rotation
+        if getattr(self, 'center', None) is None:
+            center_row, center_col = find_center_edge_detection(
+                self.image,
+                threshold=self.center_threshold,
+                fallback_threshold=self.center_threshold_fallback,
+            )
+            self.center = (center_col, center_row)
+
+        rotation_angle, top_pt, bottom_pt = find_rotation(
+            self.image,
+            self.center,
+            self.pixel_spacing,
+            insert_radius_mm=self.material_distance,
+            edge_threshold=self.edge_threshold,
+            center_threshold=30,
+            iterations=5,
+            profile_length=25,
+            granularity=3,
+            interp_kwargs={'bounds_error': False, 'fill_value': 0},
+            initial_angle_deg=initial_angle_deg,
+        )
+
+        self.rotation_offset = float(rotation_angle)
+        self.rotation_top_point = top_pt
+        self.rotation_bottom_point = bottom_pt
+        return float(self.rotation_offset), top_pt, bottom_pt
