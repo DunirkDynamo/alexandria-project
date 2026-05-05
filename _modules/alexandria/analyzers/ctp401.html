@@ -462,17 +462,50 @@
     
 <div class="viewcode-block" id="CTP401Analyzer.detect_rotation">
 <a class="viewcode-back" href="../../../api.html#alexandria.CTP401Analyzer.detect_rotation">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">detect_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_angle_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_angle_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Detect phantom rotation using material insert positions.</span>
-<span class="sd">        </span>
-<span class="sd">        Finds the Air insert (90°, top) and Acrylic insert (270°, bottom) and </span>
-<span class="sd">        calculates rotation based on their offset from vertical alignment. </span>
-<span class="sd">        Uses iterative refinement with safety threshold to prevent invalid results.</span>
+
+<span class="sd">        Locates the Air (90°) and Acrylic (270°) inserts via iterative edge</span>
+<span class="sd">        detection and calculates rotation from their deviation from vertical</span>
+<span class="sd">        alignment.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            initial_angle_deg: Initial rotation guess in degrees (default 0).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (rotation_angle_deg, top_point, bottom_point).</span>
+<span class="sd">            rotation_angle_deg is also stored as ``self.rotation_offset``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Implementation omitted in the copied excerpt to keep file concise for initial migration.</span>
-        <span class="c1"># The full implementation remains in the original package and will be migrated next.</span>
-        <span class="k">return</span> <span class="n">initial_angle_deg</span></div>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_rotation</span><span class="p">,</span> <span class="n">find_center_edge_detection</span>
+
+        <span class="c1"># Ensure center is available before calling find_rotation</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">center_row</span><span class="p">,</span> <span class="n">center_col</span> <span class="o">=</span> <span class="n">find_center_edge_detection</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span><span class="p">,</span>
+                <span class="n">fallback_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="n">center_col</span><span class="p">,</span> <span class="n">center_row</span><span class="p">)</span>
+
+        <span class="n">rotation_angle</span><span class="p">,</span> <span class="n">top_pt</span><span class="p">,</span> <span class="n">bottom_pt</span> <span class="o">=</span> <span class="n">find_rotation</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span><span class="p">,</span>
+            <span class="n">insert_radius_mm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">material_distance</span><span class="p">,</span>
+            <span class="n">edge_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">edge_threshold</span><span class="p">,</span>
+            <span class="n">center_threshold</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+            <span class="n">iterations</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+            <span class="n">profile_length</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+            <span class="n">granularity</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">interp_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;bounds_error&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;fill_value&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+            <span class="n">initial_angle_deg</span><span class="o">=</span><span class="n">initial_angle_deg</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rotation_angle</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation_top_point</span> <span class="o">=</span> <span class="n">top_pt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation_bottom_point</span> <span class="o">=</span> <span class="n">bottom_pt</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rotation_offset</span><span class="p">),</span> <span class="n">top_pt</span><span class="p">,</span> <span class="n">bottom_pt</span></div>
 </div>
 
 </pre></div>
