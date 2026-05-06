@@ -381,38 +381,36 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_lcv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contrast_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate Low Contrast Visibility from material ROIs.</span>
-<span class="sd">        </span>
+
+<span class="sd">        Uses the formula from the original processDICOMcat.py::</span>
+
+<span class="sd">            LCV = 3.25 * (σ_Polystyrene + σ_LDPE) / (μ_Polystyrene - μ_LDPE)</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            contrast_results: List of ROI analysis results</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
-<span class="sd">            LCV percentage</span>
+<span class="sd">            LCV value</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Find relevant materials for LCV calculation. The classic LCV</span>
-        <span class="c1"># metric compares two low-contrast inserts (commonly Polystyrene</span>
-        <span class="c1"># vs Acrylic) and expresses the difference as a percentage.</span>
-        <span class="n">polystyrene</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">acrylic</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">polystyrene_mean</span> <span class="o">=</span> <span class="n">polystyrene_std</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ldpe_mean</span> <span class="o">=</span> <span class="n">ldpe_std</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">for</span> <span class="n">roi</span> <span class="ow">in</span> <span class="n">contrast_results</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;material&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Polystyrene&#39;</span><span class="p">:</span>
-                <span class="n">polystyrene</span> <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;mean_hu&#39;</span><span class="p">]</span>
-            <span class="k">elif</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;material&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Acrylic&#39;</span><span class="p">:</span>
-                <span class="n">acrylic</span> <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;mean_hu&#39;</span><span class="p">]</span>
+                <span class="n">polystyrene_mean</span> <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;mean_hu&#39;</span><span class="p">]</span>
+                <span class="n">polystyrene_std</span>  <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;std_hu&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;material&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;LDPE&#39;</span><span class="p">:</span>
+                <span class="n">ldpe_mean</span> <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;mean_hu&#39;</span><span class="p">]</span>
+                <span class="n">ldpe_std</span>  <span class="o">=</span> <span class="n">roi</span><span class="p">[</span><span class="s1">&#39;std_hu&#39;</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">polystyrene</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">acrylic</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># LCV = |HU1 - HU2| / |HU_ref| * 100 — use the acrylic</span>
-            <span class="c1"># value as a practical reference. If the reference happens</span>
-            <span class="c1"># to be zero we fall back to an absolute difference to avoid</span>
-            <span class="c1"># division-by-zero.</span>
-            <span class="k">if</span> <span class="n">acrylic</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">lcv</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">polystyrene</span> <span class="o">-</span> <span class="n">acrylic</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">acrylic</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">lcv</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">polystyrene</span> <span class="o">-</span> <span class="n">acrylic</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">lcv</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="n">polystyrene_mean</span><span class="p">,</span> <span class="n">polystyrene_std</span><span class="p">,</span> <span class="n">ldpe_mean</span><span class="p">,</span> <span class="n">ldpe_std</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
 
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">lcv</span><span class="p">)</span>
+        <span class="n">denominator</span> <span class="o">=</span> <span class="n">polystyrene_mean</span> <span class="o">-</span> <span class="n">ldpe_mean</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">denominator</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="mf">3.25</span> <span class="o">*</span> <span class="p">(</span><span class="n">polystyrene_std</span> <span class="o">+</span> <span class="n">ldpe_std</span><span class="p">)</span> <span class="o">/</span> <span class="n">denominator</span><span class="p">)</span>
     
 <div class="viewcode-block" id="CTP404Analyzer.get_results_summary">
 <a class="viewcode-back" href="../../../api.html#alexandria.CTP404Analyzer.get_results_summary">[docs]</a>
