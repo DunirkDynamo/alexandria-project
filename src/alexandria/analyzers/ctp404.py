@@ -300,38 +300,36 @@ class CTP404Analyzer:
     def _calculate_lcv(self, contrast_results: List[Dict]) -> float:
         """
         Calculate Low Contrast Visibility from material ROIs.
-        
+
+        Uses the formula from the original processDICOMcat.py::
+
+            LCV = 3.25 * (σ_Polystyrene + σ_LDPE) / (μ_Polystyrene - μ_LDPE)
+
         Args:
             contrast_results: List of ROI analysis results
-        
+
         Returns:
-            LCV percentage
+            LCV value
         """
-        # Find relevant materials for LCV calculation. The classic LCV
-        # metric compares two low-contrast inserts (commonly Polystyrene
-        # vs Acrylic) and expresses the difference as a percentage.
-        polystyrene = None
-        acrylic = None
+        polystyrene_mean = polystyrene_std = None
+        ldpe_mean = ldpe_std = None
 
         for roi in contrast_results:
             if roi['material'] == 'Polystyrene':
-                polystyrene = roi['mean_hu']
-            elif roi['material'] == 'Acrylic':
-                acrylic = roi['mean_hu']
+                polystyrene_mean = roi['mean_hu']
+                polystyrene_std  = roi['std_hu']
+            elif roi['material'] == 'LDPE':
+                ldpe_mean = roi['mean_hu']
+                ldpe_std  = roi['std_hu']
 
-        if polystyrene is not None and acrylic is not None:
-            # LCV = |HU1 - HU2| / |HU_ref| * 100 — use the acrylic
-            # value as a practical reference. If the reference happens
-            # to be zero we fall back to an absolute difference to avoid
-            # division-by-zero.
-            if acrylic != 0:
-                lcv = abs(polystyrene - acrylic) / abs(acrylic) * 100.0
-            else:
-                lcv = abs(polystyrene - acrylic)
-        else:
-            lcv = 0.0
+        if None in (polystyrene_mean, polystyrene_std, ldpe_mean, ldpe_std):
+            return 0.0
 
-        return float(lcv)
+        denominator = polystyrene_mean - ldpe_mean
+        if abs(denominator) < 1e-6:
+            return 0.0
+
+        return float(3.25 * (polystyrene_std + ldpe_std) / denominator)
     
     def get_results_summary(self) -> str:
         """

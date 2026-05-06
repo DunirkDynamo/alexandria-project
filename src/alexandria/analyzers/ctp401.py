@@ -64,7 +64,7 @@ class CTP401Analyzer:
         edge_threshold: float = 100.0,
         center_finder: Optional[Callable[..., Tuple]] = None,
         center_finder_kwargs: Optional[Dict[str, Any]] = None,
-        center_threshold: float = -980,
+        center_threshold: float = -950,
         center_threshold_fallback: float = -900.0,
     ):
         """
