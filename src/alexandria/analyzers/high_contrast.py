@@ -189,12 +189,14 @@ class HighContrastAnalyzer:
 
         return float(MTF_value), f1, peaks_max1, peaks_min1, peaks1, x_coords, y_coords
 
-    def analyze(self, write_log: bool = False, verbose: bool = True) -> Dict[str, Any]:
-        if self.image is None:
-            self.prepare_image()
-
+    def _compute_boundary(self):
+        """
+        Compute and set the phantom boundary using the same logic as other modules.
+        """
+        from alexandria.utils import find_center_edge_detection, compute_phantom_boundary, draw_boundary
+        diameter_x = None
+        diameter_y = None
         if self.center is None:
-            from alexandria.utils import find_center_edge_detection, compute_phantom_boundary, draw_boundary
             center_row, center_col, diameter_y, diameter_x = find_center_edge_detection(
                 self.image,
                 threshold=self.center_threshold,
@@ -204,31 +206,36 @@ class HighContrastAnalyzer:
             self.center = (center_col, center_row)
             self.center_x = float(self.center[0])
             self.center_y = float(self.center[1])
+        boundary_x, boundary_y = draw_boundary(self.center, diameter_x, diameter_y)
+        if len(boundary_x) == 0:
+            _, (boundary_x, boundary_y) = compute_phantom_boundary(
+                self.image,
+                self.center,
+                self.pixel_spacing,
+                threshold=self.center_threshold,
+                fallback_threshold=self.center_threshold_fallback
+            )
+        self.boundary = {
+            'x': boundary_x.tolist() if len(boundary_x) > 0 else [],
+            'y': boundary_y.tolist() if len(boundary_y) > 0 else []
+        }
 
-            boundary_x, boundary_y = draw_boundary(self.center, diameter_x, diameter_y)
-            if len(boundary_x) == 0:
-                _, (boundary_x, boundary_y) = compute_phantom_boundary(
-                    self.image,
-                    self.center,
-                    self.pixel_spacing,
-                    threshold=self.center_threshold,
-                    fallback_threshold=self.center_threshold_fallback
-                )
-            self.boundary = {
-                'x': boundary_x.tolist() if len(boundary_x) > 0 else [],
-                'y': boundary_y.tolist() if len(boundary_y) > 0 else []
-            }
+    def analyze(self, write_log: bool = False, verbose: bool = True) -> dict:
+        if self.image is None:
+            self.prepare_image()
+
+        self._compute_boundary()
 
         self._compute_centers()
 
         n_pairs = len(self.lpx) - 1
         per_pair_mtf = []
-        profiles = []
-        pmax_list = []
-        pmin_list = []
-        pcomb_list = []
-        lp_x_list = []
-        lp_y_list = []
+        profiles     = []
+        pmax_list    = []
+        pmin_list    = []
+        pcomb_list   = []
+        lp_x_list    = []
+        lp_y_list    = []
 
         for i in range(n_pairs):
             npeaks = self.npeaks[i]

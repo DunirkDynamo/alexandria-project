@@ -68,7 +68,7 @@ class CTP515Analyzer:
         center_finder: Optional[Callable[..., Tuple]] = None,
         center_finder_kwargs: Optional[Dict[str, Any]] = None,
         center_threshold: float = 400.0,
-        center_threshold_fallback: float = -900.0,
+        center_threshold_fallback: float = 300,
     ):
         """
         Initialize the CTP515 analyzer.

@@ -5,6 +5,7 @@ from .geometry import (
     compute_phantom_boundary,
     draw_boundary,
     find_center_edge_detection,
+    find_center_mirror_correlation,
     find_rotation
 )
 from .image_processing import ImageProcessor
@@ -15,5 +16,6 @@ __all__ = [
     'compute_phantom_boundary',
     'draw_boundary',
     'find_center_edge_detection',
+    'find_center_mirror_correlation',
     'find_rotation'
 ]

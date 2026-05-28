@@ -192,7 +192,7 @@ class CTP404Analyzer:
             center_row, center_col = find_center_edge_detection(
                 self.image,
                 threshold=400.0,
-                fallback_threshold=-900.0
+                fallback_threshold=300.0
             )
             self.center = (center_col, center_row)
 

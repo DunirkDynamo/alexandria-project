@@ -160,6 +160,9 @@ class DetailedUniformityAnalyzer:
         for radius_mm in radii_mm:
             radius_px = radius_mm / self.pixel_spacing
             angles_deg, values = self._sample_circle(center_x, center_y, radius_px)
+            angle_start_deg = float(angles_deg[0]) if len(angles_deg) > 0 else 0.0
+            angle_end_deg = float(angles_deg[-1]) if len(angles_deg) > 0 else 0.0
+            angle_increment_deg = float(angles_deg[1] - angles_deg[0]) if len(angles_deg) > 1 else 0.0
 
             profile = {
                 "radius_mm": float(radius_mm),
@@ -175,7 +178,9 @@ class DetailedUniformityAnalyzer:
             profile_results.append({
                 "radius_mm": profile["radius_mm"],
                 "radius_px": profile["radius_px"],
-                "angles_deg": profile["angles_deg"].tolist(),
+                "start_angle_deg": angle_start_deg,
+                "end_angle_deg": angle_end_deg,
+                "angle_increment_deg": angle_increment_deg,
                 "values": profile["values"].tolist(),
                 "mean": profile["mean"],
                 "std": profile["std"],

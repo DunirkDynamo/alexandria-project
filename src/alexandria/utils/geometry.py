@@ -10,6 +10,210 @@ from scipy.signal import find_peaks, peak_widths
 from typing import Tuple, List, Optional, Union
 
 
+def _normalized_overlap_correlation(region_a: np.ndarray, region_b: np.ndarray) -> float:
+    """Compute a normalized correlation score for two overlapping image regions.
+
+    The mirror-correlation centre finder compares the original image against a
+    mirrored copy over many trial shifts.  Each trial only evaluates the region
+    where the two images overlap after the shift.  This helper converts those
+    overlapping regions into a Pearson-like similarity score by removing the
+    mean from each region and normalising by the product of their Euclidean
+    norms.
+
+    A value near ``1`` indicates strong symmetry for that trial shift, whereas a
+    value near ``0`` indicates poor alignment.  The score is returned as NaN for
+    degenerate inputs so the caller can ignore invalid shifts cleanly.
+    """
+    # Flatten the overlapping regions so the correlation is computed on a simple
+    # 1-D vector of intensities rather than on 2-D image coordinates.
+    flat_a = np.ravel(region_a).astype(float)
+    flat_b = np.ravel(region_b).astype(float)
+
+    # An empty overlap can occur if an invalid shift slips through.  Mark that
+    # trial as unusable instead of raising.
+    if flat_a.size == 0 or flat_b.size == 0:
+        return float('nan')
+
+    # Remove the mean from each region so broad intensity offsets do not drive
+    # the score.  This makes the method respond to symmetry, not to average HU.
+    flat_a = flat_a - np.mean(flat_a)
+    flat_b = flat_b - np.mean(flat_b)
+
+    # Guard against flat regions where the normalised correlation would divide
+    # by zero.  Returning NaN keeps the peak search robust.
+    denom = np.linalg.norm(flat_a) * np.linalg.norm(flat_b)
+    if denom == 0:
+        return float('nan')
+    return float(np.dot(flat_a, flat_b) / denom)
+
+
+def _horizontal_overlap(image: np.ndarray, mirrored: np.ndarray, shift: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Return the overlapping image regions for a horizontal shift.
+
+    Example:
+        If ``shift = +3``, the mirrored image is treated as if it moved three
+        pixels to the right, so the leftmost three columns no longer overlap and
+        are excluded from the comparison.
+    """
+    # Positive shifts drop columns from the left of the original / right of the
+    # mirrored image.  Negative shifts do the opposite.  In both cases we return
+    # two arrays with identical shape so the correlation can be computed safely.
+    if shift >= 0:
+        return image[:, shift:], mirrored[:, : image.shape[1] - shift]
+    return image[:, : image.shape[1] + shift], mirrored[:, -shift:]
+
+
+def _vertical_overlap(image: np.ndarray, mirrored: np.ndarray, shift: int) -> Tuple[np.ndarray, np.ndarray]:
+    """Return the overlapping image regions for a vertical shift.
+
+    Example:
+        If ``shift = -2``, the mirrored image is treated as if it moved upward
+        by two pixels, so the bottom two rows are excluded from the overlap.
+    """
+    # The same overlap logic as the horizontal case applies here, but with rows
+    # instead of columns.
+    if shift >= 0:
+        return image[shift:, :], mirrored[: image.shape[0] - shift, :]
+    return image[: image.shape[0] + shift, :], mirrored[-shift:, :]
+
+
+def _mirror_correlation_curve(image: np.ndarray, axis: str, max_shift: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute mirror-correlation scores as a function of integer pixel shift.
+
+    The image is mirrored about the requested axis and then compared with the
+    original image over a range of integer shifts.  The resulting curve is the
+    discrete objective function whose maximum corresponds to the strongest
+    symmetry alignment for that axis.
+
+    Args:
+        image    : 2-D image array used for the symmetry search.
+        axis     : ``'horizontal'`` for left-right symmetry, ``'vertical'`` for
+                   top-bottom symmetry.
+        max_shift: Optional cap on the evaluated shift range.  When omitted, the
+                   search spans almost half the image extent in the chosen axis.
+
+    Returns:
+        shifts      : Integer trial shifts in pixels.
+        correlations: Normalized correlation score at each trial shift.
+    """
+    # Build the mirrored comparison image and choose the overlap helper that
+    # matches the requested axis.
+    if axis == 'horizontal':
+        mirrored = np.fliplr(image)
+        default_limit = image.shape[1] // 2 - 1
+        overlap_fn = _horizontal_overlap
+    elif axis == 'vertical':
+        mirrored = np.flipud(image)
+        default_limit = image.shape[0] // 2 - 1
+        overlap_fn = _vertical_overlap
+    else:
+        raise ValueError("axis must be 'horizontal' or 'vertical'")
+
+    # Search symmetrically around zero shift.  Limiting the range can be useful
+    # when the phantom is known to be near the image centre.
+    limit = default_limit if max_shift is None else min(int(max_shift), default_limit)
+    shifts = np.arange(-limit, limit + 1, dtype=int)
+    correlations = np.empty_like(shifts, dtype=float)
+
+    # Evaluate the symmetry objective independently at each integer shift.
+    for index, shift in enumerate(shifts):
+        region_a, region_b = overlap_fn(image, mirrored, int(shift))
+        correlations[index] = _normalized_overlap_correlation(region_a, region_b)
+
+    return shifts, correlations
+
+
+def _refine_peak_subpixel(shifts: np.ndarray, correlations: np.ndarray) -> float:
+    """Refine the best integer shift with a three-point parabolic peak fit.
+
+    The discrete correlation curve is sampled only at integer shifts, but the
+    true symmetry maximum can fall between pixels.  To recover that sub-pixel
+    location, this helper fits a parabola through the peak bin and its immediate
+    neighbors and returns the parabola vertex.
+
+    This is the standard quadratic interpolation step used after many discrete
+    correlation searches because it is inexpensive, smooth, and robust when the
+    peak is well behaved.
+    """
+    # Identify the best integer-shift candidate first.
+    peak_index = int(np.nanargmax(correlations))
+    peak_shift = float(shifts[peak_index])
+
+    # A parabola fit needs one sample on each side of the peak.  If the peak is
+    # on the search boundary, fall back to the integer shift.
+    if peak_index == 0 or peak_index == len(correlations) - 1:
+        return peak_shift
+
+    # Fit a quadratic through the left / centre / right samples.  The denominator
+    # is proportional to the curvature; zero curvature means the fit is ill posed.
+    left_corr = float(correlations[peak_index - 1])
+    center_corr = float(correlations[peak_index])
+    right_corr = float(correlations[peak_index + 1])
+    denominator = left_corr - 2.0 * center_corr + right_corr
+    if denominator == 0:
+        return peak_shift
+
+    # The vertex offset ``delta`` is measured in bins relative to the centre
+    # sample.  Values outside [-1, 1] imply an unstable local fit, so keep the
+    # integer peak in that case.
+    delta = 0.5 * (left_corr - right_corr) / denominator
+    if abs(delta) > 1.0:
+        return peak_shift
+    return float(peak_shift + delta)
+
+
+def find_center_mirror_correlation(image: np.ndarray, max_shift: Optional[int] = None) -> Tuple[float, float, None, None]:
+    """Estimate phantom centre from whole-image mirror-correlation symmetry.
+
+    This optional centre finder treats left-right and top-bottom symmetry as two
+    separate 1-D alignment problems.  For each axis it mirrors the image, slides
+    the mirrored copy over a range of integer shifts, evaluates a normalized
+    correlation score at each shift, and then refines the best shift with a
+    three-point parabolic fit.  The refined horizontal and vertical shifts are
+    converted into a centre estimate relative to the image midpoint.
+
+    The return signature intentionally matches the contract already used by
+    :func:`find_center_edge_detection` so callers such as
+    ``UniformityAnalyzer.center_finder`` can switch algorithms without special
+    case unpacking.  This algorithm estimates centre only; it does not directly
+    measure phantom diameters, so the diameter slots are returned as ``None``.
+
+    Args:
+        image    : 2-D phantom image array.
+        max_shift: Optional cap on the integer shift search range for each axis.
+
+    Returns:
+        center_row   : Estimated centre row in pixels.
+        center_col   : Estimated centre column in pixels.
+        diameter_y_px: Always ``None`` for this method.
+        diameter_x_px: Always ``None`` for this method.
+    """
+    # Convert to float so mean subtraction and correlation arithmetic behave
+    # consistently even when the input image uses integer DICOM pixel types.
+    image = np.asarray(image, dtype=float)
+
+    # Estimate the best symmetry shift independently for left-right and
+    # top-bottom reflections.
+    shifts_x, corr_x = _mirror_correlation_curve(image, axis='horizontal', max_shift=max_shift)
+    shifts_y, corr_y = _mirror_correlation_curve(image, axis='vertical', max_shift=max_shift)
+
+    # Refine the integer-shift maxima to sub-pixel values using the parabolic fit.
+    shift_x = _refine_peak_subpixel(shifts_x, corr_x)
+    shift_y = _refine_peak_subpixel(shifts_y, corr_y)
+
+    # Convert symmetry shifts into a centre relative to the image midpoint.
+    # Example: a +2 px horizontal symmetry shift implies the phantom centre is
+    # displaced +1 px from the image midpoint in x.
+    midpoint_x = (image.shape[1] - 1) / 2.0
+    midpoint_y = (image.shape[0] - 1) / 2.0
+    center_col = midpoint_x + shift_x / 2.0
+    center_row = midpoint_y + shift_y / 2.0
+
+    # Mirror-correlation does not estimate phantom diameter; callers that need a
+    # boundary can fall back to another boundary-estimation helper.
+    return float(center_row), float(center_col), None, None
+
+
 class CatPhanGeometry:
     """Legacy class-based geometry helpers. Prefer the module-level functions for new code."""
 
@@ -498,9 +702,9 @@ def find_rotation(image: np.ndarray, center: Optional[Tuple[float, float]], pixe
         prof_h = np.zeros(len(x_horiz))   # intensity values along the horizontal profile
         prof_v = np.zeros(len(x_vert))    # intensity values along the vertical profile
         for i in range(len(x_horiz)):
-            prof_h[i] = interpn((x, y), image, [roi_pos[1], x_horiz[i]], **interp_kwargs)
+               prof_h[i] = interpn((x, y), image, [[roi_pos[1], x_horiz[i]]], **interp_kwargs)[0]
         for i in range(len(x_vert)):
-            prof_v[i] = interpn((x, y), image, [x_vert[i], roi_pos[0]], **interp_kwargs)
+               prof_v[i] = interpn((x, y), image, [[x_vert[i], roi_pos[0]]], **interp_kwargs)[0]
 
         # Discrete first derivative — peaks in |dh| and |dv| correspond to insert edges
         dh = np.diff(prof_h)   # derivative of the horizontal profile

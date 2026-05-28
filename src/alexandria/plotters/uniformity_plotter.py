@@ -131,23 +131,25 @@ class UniformityPlotter:
             patch.set_alpha(0.7)
 
         central_range = 300
-        half_range = central_range//2
-        center_y = img.shape[0] // 2
+        half_range = central_range // 2
+        center_x = int(round(cx))
+        center_y = int(round(cy))
+
         start_y = max(0, center_y - half_range)
         end_y = min(img.shape[0], center_y + half_range)
-        vertical_profile = img[start_y:end_y, int(cx)]
-        center_x = img.shape[1] // 2
+        vertical_profile = img[start_y:end_y, center_x]
+        vertical_positions = np.arange(start_y, end_y, dtype=float) - float(cy)
+
         start_x = max(0, center_x - half_range)
         end_x = min(img.shape[1], center_x + half_range)
-        horizontal_profile = img[int(cy), start_x:end_x]
-        ax_prof.plot(vertical_profile, label='Vertical (central {}px)'.format(central_range), color='blue')
-        ax_prof.plot(horizontal_profile, label='Horizontal (central {}px)'.format(central_range), color='red')
-        vert_center_idx = int(cy) - start_y
-        horiz_center_idx = int(cx) - start_x
-        ax_prof.axvline(vert_center_idx, color='blue', linestyle='--', linewidth=2, label='Vertical center (y={:.0f})'.format(cy))
-        ax_prof.axvline(horiz_center_idx, color='red', linestyle='--', linewidth=2, label='Horizontal center (x={:.0f})'.format(cx))
+        horizontal_profile = img[center_y, start_x:end_x]
+        horizontal_positions = np.arange(start_x, end_x, dtype=float) - float(cx)
+
+        ax_prof.plot(vertical_positions, vertical_profile, label='Vertical (central {}px)'.format(central_range), color='blue')
+        ax_prof.plot(horizontal_positions, horizontal_profile, label='Horizontal (central {}px)'.format(central_range), color='red')
+        ax_prof.axvline(0.0, color='black', linestyle='--', linewidth=2, label='Center')
         ax_prof.set_title('Center Profiles (Central 300 Pixels)')
-        ax_prof.set_xlabel('Pixel position (relative)')
+        ax_prof.set_xlabel('Position Relative to Center (px)')
         ax_prof.set_ylabel('HU')
         ax_prof.legend()
         ax_prof.grid(True, alpha=0.3)

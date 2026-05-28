@@ -29,6 +29,61 @@ fig = reporter.plot()
 reporter.save_plot('uniformity_report.png')
 ```
 
+### 1a) Center-finding options for `UniformityAnalyzer`
+
+`UniformityAnalyzer` supports either the default edge-based center finder or a
+custom `center_finder` callable. A custom center finder must return either:
+
+- `(row, col)`
+- `(row, col, diameter_y_px, diameter_x_px)`
+
+If a custom center finder returns only `(row, col)`, the analyzer still works
+correctly. In that case, the phantom boundary is estimated later using the
+shared boundary helper.
+
+Default edge-based center finding:
+
+```python
+from imageio import imread
+from alexandria.analyzers.uniformity import UniformityAnalyzer
+
+image = imread('ctp_uniformity.png')
+
+ua = UniformityAnalyzer(
+    image=image,
+    pixel_spacing=0.5,
+    center=None,  # let the analyzer find the center automatically
+)
+
+results = ua.analyze()
+print('Computed center:', ua.center)
+print('Uniformity %:', results.get('uniformity'))
+```
+
+Mirror-correlation center finding:
+
+```python
+from imageio import imread
+from alexandria.analyzers.uniformity import UniformityAnalyzer
+from alexandria.utils import find_center_mirror_correlation
+
+image = imread('ctp_uniformity.png')
+
+ua = UniformityAnalyzer(
+    image=image,
+    pixel_spacing=0.5,
+    center=None,
+    center_finder=find_center_mirror_correlation,
+    center_finder_kwargs={
+        'max_shift': 80,  # optional; omit to use the default search range
+    },
+)
+
+results = ua.analyze()
+print('Computed center:', ua.center)
+print('Uniformity %:', results.get('uniformity'))
+```
+
 ## 2) High-contrast (MTF) example
 
 ```python

@@ -20,6 +20,18 @@ class UniformityAnalyzer:
     in five fixed ROIs (center, north, south, east, west) relative to the
     phantom center. Supports both single-image analysis and DICOM series with
     3-slice averaging for improved SNR.
+
+    Center handling:
+        A center may be provided explicitly, or the analyzer may compute one on
+        demand by calling ``center_finder``.  The expected return contract for a
+        center finder is either ``(row, col)`` or
+        ``(row, col, diameter_y_px, diameter_x_px)``.
+
+        Some center finders, such as mirror-correlation symmetry methods, only
+        estimate the center and do not naturally provide diameters.  That case
+        is handled explicitly: missing diameters are treated as ``None`` and the
+        analyzer falls back to ``compute_phantom_boundary(...)`` when it needs a
+        boundary for plotting or diagnostics.
     """
 
     # Region names (standardized across both projects)
@@ -42,6 +54,31 @@ class UniformityAnalyzer:
     ):
         """
         Initialize the UniformityAnalyzer.
+
+        Args:
+            image                  : Optional 2-D image array for single-image mode.
+            center                 : Optional explicit center as ``(x, y)`` in pixels.
+            pixel_spacing          : Pixel spacing in mm/pixel.
+            spacing                : Alias for ``pixel_spacing``.
+            dicom_set              : Optional DICOM series used in 3-slice averaging mode.
+            slice_index            : Slice index of the CTP486 module within ``dicom_set``.
+            roi_box_size           : ROI side length in mm.
+            roi_offset             : ROI offset from center in mm.
+            center_finder          : Optional callable used when ``center`` is not supplied.
+                                     It must return ``(row, col)`` or
+                                     ``(row, col, diameter_y_px, diameter_x_px)``.
+            center_finder_kwargs   : Optional keyword arguments passed directly to
+                                     ``center_finder``.
+            center_threshold       : Threshold used by the default edge-based center finder.
+            center_threshold_fallback:
+                                     Fallback threshold used when the primary center
+                                     threshold fails.
+
+        Notes:
+            If a custom ``center_finder`` returns only ``(row, col)``, the
+            analyzer still works correctly.  Diameter values are recorded as
+            ``None`` and the boundary is estimated later using
+            ``compute_phantom_boundary(...)`` when needed.
         """
         # Mode detection
         self.dicom_mode = dicom_set is not None and slice_index is not None
@@ -121,6 +158,11 @@ class UniformityAnalyzer:
     def _compute_roi_regions(self):
         """
         Compute ROI regions based on center and spacing.
+
+        This method is where a custom ``center_finder`` is actually invoked when
+        no center has been provided up front.  The unpacking logic accepts both
+        centre-only results and centre-plus-diameter results so experimental and
+        production centre finders can share the same analyzer pathway.
         """
         # Ensure image is prepared
         if self.image is None:
@@ -135,6 +177,11 @@ class UniformityAnalyzer:
             from alexandria.utils import find_center_edge_detection, compute_phantom_boundary, draw_boundary
 
             def _unpack_center_result(value: Any) -> Tuple[float, float, Optional[float], Optional[float]]:
+                # Accept either the full edge-detection contract
+                #   (row, col, diameter_y_px, diameter_x_px)
+                # or the center-only contract
+                #   (row, col)
+                # used by methods such as mirror-correlation symmetry finding.
                 if isinstance(value, (tuple, list)):
                     if len(value) >= 4:
                         return float(value[0]), float(value[1]), value[2], value[3]
@@ -145,9 +192,14 @@ class UniformityAnalyzer:
                 )
 
             if self.center_finder is not None:
+                # A custom center finder can swap in an alternative algorithm,
+                # such as mirror-correlation symmetry, without changing the rest
+                # of the ROI-analysis code.
                 result = self.center_finder(self.image, **self.center_finder_kwargs)
                 center_row, center_col, diameter_y, diameter_x = _unpack_center_result(result)
             else:
+                # Default behavior uses the shared edge-detection center finder,
+                # which also returns rough horizontal and vertical diameters.
                 center_row, center_col, diameter_y, diameter_x = find_center_edge_detection(
                     self.image,
                     threshold=self.center_threshold,
@@ -156,7 +208,10 @@ class UniformityAnalyzer:
                 )
             self.center = (center_col, center_row)
 
-            # Draw boundary from edge-derived diameters when available
+            # When the center finder supplied diameter estimates, reuse them to
+            # draw a boundary immediately.  If the chosen center finder did not
+            # provide diameters, fall back to the general boundary-estimation
+            # helper so downstream plotting code still has a boundary to show.
             boundary_x, boundary_y = draw_boundary(self.center, diameter_x, diameter_y)
             if len(boundary_x) == 0:
                 _, (boundary_x, boundary_y) = compute_phantom_boundary(
