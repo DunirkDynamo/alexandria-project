@@ -137,6 +137,7 @@
 </pre></div>
 </div>
 <p>Purpose: five-ROI uniformity analysis (centre, north, south, east, west). Supports single-image and DICOM-series (3-slice averaged) modes.</p>
+<p>Center-finding options: <code class="docutils literal notranslate"><span class="pre">UniformityAnalyzer</span></code> supports the default edge-based center finder as well as custom <code class="docutils literal notranslate"><span class="pre">center_finder</span></code> callables such as the mirror-correlation symmetry method. See <code class="docutils literal notranslate"><span class="pre">docs/source/USAGE_EXAMPLES.md</span></code> for concrete examples of both patterns and the expected center-finder return contract.</p>
 <p>Key methods:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">analyze(verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True)</span> <span class="pre">-&gt;</span> <span class="pre">Dict[str,</span> <span class="pre">Any]</span></code></p></li>

@@ -39,6 +39,8 @@ UniformityAnalyzer(
 
 Purpose: five-ROI uniformity analysis (centre, north, south, east, west). Supports single-image and DICOM-series (3-slice averaged) modes.
 
+Center-finding options: `UniformityAnalyzer` supports the default edge-based center finder as well as custom `center_finder` callables such as the mirror-correlation symmetry method. See `docs/source/USAGE_EXAMPLES.md` for concrete examples of both patterns and the expected center-finder return contract.
+
 Key methods:
 - `analyze(verbose: bool = True) -> Dict[str, Any]`
 - `analyze_uniformity() -> Tuple[List, np.ndarray, List]` (compat return for some callers)

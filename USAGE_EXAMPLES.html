@@ -46,7 +46,10 @@
 <li class="toctree-l1"><a class="reference internal" href="contents.html">Alexandria Library Contents</a></li>
 <li class="toctree-l1"><a class="reference internal" href="QUICK_REFERENCE.html">Alexandria — Quick Reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Alexandria — Usage Examples</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#single-image-example-uniformity">1) Single-image example — Uniformity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#single-image-example-uniformity">1) Single-image example — Uniformity</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#a-center-finding-options-for-uniformityanalyzer">1a) Center-finding options for <code class="docutils literal notranslate"><span class="pre">UniformityAnalyzer</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#high-contrast-mtf-example">2) High-contrast (MTF) example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#ctp401-ctp404-ctp515-examples">3) CTP401 / CTP404 / CTP515 examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#plotters-direct-usage">4) Plotters (direct usage)</a></li>
@@ -111,6 +114,57 @@
 <span class="n">reporter</span><span class="o">.</span><span class="n">save_plot</span><span class="p">(</span><span class="s1">&#39;uniformity_report.png&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<section id="a-center-finding-options-for-uniformityanalyzer">
+<h3>1a) Center-finding options for <code class="docutils literal notranslate"><span class="pre">UniformityAnalyzer</span></code><a class="headerlink" href="#a-center-finding-options-for-uniformityanalyzer" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">UniformityAnalyzer</span></code> supports either the default edge-based center finder or a
+custom <code class="docutils literal notranslate"><span class="pre">center_finder</span></code> callable. A custom center finder must return either:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col,</span> <span class="pre">diameter_y_px,</span> <span class="pre">diameter_x_px)</span></code></p></li>
+</ul>
+<p>If a custom center finder returns only <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code>, the analyzer still works
+correctly. In that case, the phantom boundary is estimated later using the
+shared boundary helper.</p>
+<p>Default edge-based center finding:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">imageio</span><span class="w"> </span><span class="kn">import</span> <span class="n">imread</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.uniformity</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformityAnalyzer</span>
+
+<span class="n">image</span> <span class="o">=</span> <span class="n">imread</span><span class="p">(</span><span class="s1">&#39;ctp_uniformity.png&#39;</span><span class="p">)</span>
+
+<span class="n">ua</span> <span class="o">=</span> <span class="n">UniformityAnalyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># let the analyzer find the center automatically</span>
+<span class="p">)</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="n">ua</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Computed center:&#39;</span><span class="p">,</span> <span class="n">ua</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Uniformity %:&#39;</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;uniformity&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Mirror-correlation center finding:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">imageio</span><span class="w"> </span><span class="kn">import</span> <span class="n">imread</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.analyzers.uniformity</span><span class="w"> </span><span class="kn">import</span> <span class="n">UniformityAnalyzer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_center_mirror_correlation</span>
+
+<span class="n">image</span> <span class="o">=</span> <span class="n">imread</span><span class="p">(</span><span class="s1">&#39;ctp_uniformity.png&#39;</span><span class="p">)</span>
+
+<span class="n">ua</span> <span class="o">=</span> <span class="n">UniformityAnalyzer</span><span class="p">(</span>
+    <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+    <span class="n">pixel_spacing</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">center_finder</span><span class="o">=</span><span class="n">find_center_mirror_correlation</span><span class="p">,</span>
+    <span class="n">center_finder_kwargs</span><span class="o">=</span><span class="p">{</span>
+        <span class="s1">&#39;max_shift&#39;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>  <span class="c1"># optional; omit to use the default search range</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="n">ua</span><span class="o">.</span><span class="n">analyze</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Computed center:&#39;</span><span class="p">,</span> <span class="n">ua</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Uniformity %:&#39;</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;uniformity&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="high-contrast-mtf-example">
 <h2>2) High-contrast (MTF) example<a class="headerlink" href="#high-contrast-mtf-example" title="Link to this heading"></a></h2>

@@ -95,6 +95,18 @@
 <span class="sd">    in five fixed ROIs (center, north, south, east, west) relative to the</span>
 <span class="sd">    phantom center. Supports both single-image analysis and DICOM series with</span>
 <span class="sd">    3-slice averaging for improved SNR.</span>
+
+<span class="sd">    Center handling:</span>
+<span class="sd">        A center may be provided explicitly, or the analyzer may compute one on</span>
+<span class="sd">        demand by calling ``center_finder``.  The expected return contract for a</span>
+<span class="sd">        center finder is either ``(row, col)`` or</span>
+<span class="sd">        ``(row, col, diameter_y_px, diameter_x_px)``.</span>
+
+<span class="sd">        Some center finders, such as mirror-correlation symmetry methods, only</span>
+<span class="sd">        estimate the center and do not naturally provide diameters.  That case</span>
+<span class="sd">        is handled explicitly: missing diameters are treated as ``None`` and the</span>
+<span class="sd">        analyzer falls back to ``compute_phantom_boundary(...)`` when it needs a</span>
+<span class="sd">        boundary for plotting or diagnostics.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Region names (standardized across both projects)</span>
@@ -117,6 +129,31 @@
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the UniformityAnalyzer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            image                  : Optional 2-D image array for single-image mode.</span>
+<span class="sd">            center                 : Optional explicit center as ``(x, y)`` in pixels.</span>
+<span class="sd">            pixel_spacing          : Pixel spacing in mm/pixel.</span>
+<span class="sd">            spacing                : Alias for ``pixel_spacing``.</span>
+<span class="sd">            dicom_set              : Optional DICOM series used in 3-slice averaging mode.</span>
+<span class="sd">            slice_index            : Slice index of the CTP486 module within ``dicom_set``.</span>
+<span class="sd">            roi_box_size           : ROI side length in mm.</span>
+<span class="sd">            roi_offset             : ROI offset from center in mm.</span>
+<span class="sd">            center_finder          : Optional callable used when ``center`` is not supplied.</span>
+<span class="sd">                                     It must return ``(row, col)`` or</span>
+<span class="sd">                                     ``(row, col, diameter_y_px, diameter_x_px)``.</span>
+<span class="sd">            center_finder_kwargs   : Optional keyword arguments passed directly to</span>
+<span class="sd">                                     ``center_finder``.</span>
+<span class="sd">            center_threshold       : Threshold used by the default edge-based center finder.</span>
+<span class="sd">            center_threshold_fallback:</span>
+<span class="sd">                                     Fallback threshold used when the primary center</span>
+<span class="sd">                                     threshold fails.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            If a custom ``center_finder`` returns only ``(row, col)``, the</span>
+<span class="sd">            analyzer still works correctly.  Diameter values are recorded as</span>
+<span class="sd">            ``None`` and the boundary is estimated later using</span>
+<span class="sd">            ``compute_phantom_boundary(...)`` when needed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Mode detection</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dicom_mode</span> <span class="o">=</span> <span class="n">dicom_set</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">slice_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -199,6 +236,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_compute_roi_regions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute ROI regions based on center and spacing.</span>
+
+<span class="sd">        This method is where a custom ``center_finder`` is actually invoked when</span>
+<span class="sd">        no center has been provided up front.  The unpacking logic accepts both</span>
+<span class="sd">        centre-only results and centre-plus-diameter results so experimental and</span>
+<span class="sd">        production centre finders can share the same analyzer pathway.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Ensure image is prepared</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -213,6 +255,11 @@
             <span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_center_edge_detection</span><span class="p">,</span> <span class="n">compute_phantom_boundary</span><span class="p">,</span> <span class="n">draw_boundary</span>
 
             <span class="k">def</span><span class="w"> </span><span class="nf">_unpack_center_result</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+                <span class="c1"># Accept either the full edge-detection contract</span>
+                <span class="c1">#   (row, col, diameter_y_px, diameter_x_px)</span>
+                <span class="c1"># or the center-only contract</span>
+                <span class="c1">#   (row, col)</span>
+                <span class="c1"># used by methods such as mirror-correlation symmetry finding.</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
                     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
                         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">value</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
@@ -223,9 +270,14 @@
                 <span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_finder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># A custom center finder can swap in an alternative algorithm,</span>
+                <span class="c1"># such as mirror-correlation symmetry, without changing the rest</span>
+                <span class="c1"># of the ROI-analysis code.</span>
                 <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_finder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">center_finder_kwargs</span><span class="p">)</span>
                 <span class="n">center_row</span><span class="p">,</span> <span class="n">center_col</span><span class="p">,</span> <span class="n">diameter_y</span><span class="p">,</span> <span class="n">diameter_x</span> <span class="o">=</span> <span class="n">_unpack_center_result</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Default behavior uses the shared edge-detection center finder,</span>
+                <span class="c1"># which also returns rough horizontal and vertical diameters.</span>
                 <span class="n">center_row</span><span class="p">,</span> <span class="n">center_col</span><span class="p">,</span> <span class="n">diameter_y</span><span class="p">,</span> <span class="n">diameter_x</span> <span class="o">=</span> <span class="n">find_center_edge_detection</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
                     <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span><span class="p">,</span>
@@ -234,7 +286,10 @@
                 <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="n">center_col</span><span class="p">,</span> <span class="n">center_row</span><span class="p">)</span>
 
-            <span class="c1"># Draw boundary from edge-derived diameters when available</span>
+            <span class="c1"># When the center finder supplied diameter estimates, reuse them to</span>
+            <span class="c1"># draw a boundary immediately.  If the chosen center finder did not</span>
+            <span class="c1"># provide diameters, fall back to the general boundary-estimation</span>
+            <span class="c1"># helper so downstream plotting code still has a boundary to show.</span>
             <span class="n">boundary_x</span><span class="p">,</span> <span class="n">boundary_y</span> <span class="o">=</span> <span class="n">draw_boundary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="n">diameter_x</span><span class="p">,</span> <span class="n">diameter_y</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">boundary_x</span><span class="p">,</span> <span class="n">boundary_y</span><span class="p">)</span> <span class="o">=</span> <span class="n">compute_phantom_boundary</span><span class="p">(</span>

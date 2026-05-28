@@ -83,6 +83,213 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalized_overlap_correlation</span><span class="p">(</span><span class="n">region_a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">region_b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute a normalized correlation score for two overlapping image regions.</span>
+
+<span class="sd">    The mirror-correlation centre finder compares the original image against a</span>
+<span class="sd">    mirrored copy over many trial shifts.  Each trial only evaluates the region</span>
+<span class="sd">    where the two images overlap after the shift.  This helper converts those</span>
+<span class="sd">    overlapping regions into a Pearson-like similarity score by removing the</span>
+<span class="sd">    mean from each region and normalising by the product of their Euclidean</span>
+<span class="sd">    norms.</span>
+
+<span class="sd">    A value near ``1`` indicates strong symmetry for that trial shift, whereas a</span>
+<span class="sd">    value near ``0`` indicates poor alignment.  The score is returned as NaN for</span>
+<span class="sd">    degenerate inputs so the caller can ignore invalid shifts cleanly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Flatten the overlapping regions so the correlation is computed on a simple</span>
+    <span class="c1"># 1-D vector of intensities rather than on 2-D image coordinates.</span>
+    <span class="n">flat_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">region_a</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">flat_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">region_b</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="c1"># An empty overlap can occur if an invalid shift slips through.  Mark that</span>
+    <span class="c1"># trial as unusable instead of raising.</span>
+    <span class="k">if</span> <span class="n">flat_a</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">flat_b</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Remove the mean from each region so broad intensity offsets do not drive</span>
+    <span class="c1"># the score.  This makes the method respond to symmetry, not to average HU.</span>
+    <span class="n">flat_a</span> <span class="o">=</span> <span class="n">flat_a</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat_a</span><span class="p">)</span>
+    <span class="n">flat_b</span> <span class="o">=</span> <span class="n">flat_b</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat_b</span><span class="p">)</span>
+
+    <span class="c1"># Guard against flat regions where the normalised correlation would divide</span>
+    <span class="c1"># by zero.  Returning NaN keeps the peak search robust.</span>
+    <span class="n">denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">flat_a</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">flat_b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">denom</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">flat_a</span><span class="p">,</span> <span class="n">flat_b</span><span class="p">)</span> <span class="o">/</span> <span class="n">denom</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_horizontal_overlap</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mirrored</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">shift</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the overlapping image regions for a horizontal shift.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        If ``shift = +3``, the mirrored image is treated as if it moved three</span>
+<span class="sd">        pixels to the right, so the leftmost three columns no longer overlap and</span>
+<span class="sd">        are excluded from the comparison.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Positive shifts drop columns from the left of the original / right of the</span>
+    <span class="c1"># mirrored image.  Negative shifts do the opposite.  In both cases we return</span>
+    <span class="c1"># two arrays with identical shape so the correlation can be computed safely.</span>
+    <span class="k">if</span> <span class="n">shift</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">image</span><span class="p">[:,</span> <span class="n">shift</span><span class="p">:],</span> <span class="n">mirrored</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">shift</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">image</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">shift</span><span class="p">],</span> <span class="n">mirrored</span><span class="p">[:,</span> <span class="o">-</span><span class="n">shift</span><span class="p">:]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_vertical_overlap</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mirrored</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">shift</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the overlapping image regions for a vertical shift.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        If ``shift = -2``, the mirrored image is treated as if it moved upward</span>
+<span class="sd">        by two pixels, so the bottom two rows are excluded from the overlap.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># The same overlap logic as the horizontal case applies here, but with rows</span>
+    <span class="c1"># instead of columns.</span>
+    <span class="k">if</span> <span class="n">shift</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">image</span><span class="p">[</span><span class="n">shift</span><span class="p">:,</span> <span class="p">:],</span> <span class="n">mirrored</span><span class="p">[:</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">shift</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">image</span><span class="p">[:</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">shift</span><span class="p">,</span> <span class="p">:],</span> <span class="n">mirrored</span><span class="p">[</span><span class="o">-</span><span class="n">shift</span><span class="p">:,</span> <span class="p">:]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mirror_correlation_curve</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_shift</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute mirror-correlation scores as a function of integer pixel shift.</span>
+
+<span class="sd">    The image is mirrored about the requested axis and then compared with the</span>
+<span class="sd">    original image over a range of integer shifts.  The resulting curve is the</span>
+<span class="sd">    discrete objective function whose maximum corresponds to the strongest</span>
+<span class="sd">    symmetry alignment for that axis.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        image    : 2-D image array used for the symmetry search.</span>
+<span class="sd">        axis     : ``&#39;horizontal&#39;`` for left-right symmetry, ``&#39;vertical&#39;`` for</span>
+<span class="sd">                   top-bottom symmetry.</span>
+<span class="sd">        max_shift: Optional cap on the evaluated shift range.  When omitted, the</span>
+<span class="sd">                   search spans almost half the image extent in the chosen axis.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        shifts      : Integer trial shifts in pixels.</span>
+<span class="sd">        correlations: Normalized correlation score at each trial shift.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Build the mirrored comparison image and choose the overlap helper that</span>
+    <span class="c1"># matches the requested axis.</span>
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;horizontal&#39;</span><span class="p">:</span>
+        <span class="n">mirrored</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fliplr</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="n">default_limit</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">overlap_fn</span> <span class="o">=</span> <span class="n">_horizontal_overlap</span>
+    <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;vertical&#39;</span><span class="p">:</span>
+        <span class="n">mirrored</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="n">default_limit</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">overlap_fn</span> <span class="o">=</span> <span class="n">_vertical_overlap</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;axis must be &#39;horizontal&#39; or &#39;vertical&#39;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Search symmetrically around zero shift.  Limiting the range can be useful</span>
+    <span class="c1"># when the phantom is known to be near the image centre.</span>
+    <span class="n">limit</span> <span class="o">=</span> <span class="n">default_limit</span> <span class="k">if</span> <span class="n">max_shift</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">max_shift</span><span class="p">),</span> <span class="n">default_limit</span><span class="p">)</span>
+    <span class="n">shifts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">limit</span><span class="p">,</span> <span class="n">limit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">correlations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">shifts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="c1"># Evaluate the symmetry objective independently at each integer shift.</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">shift</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">shifts</span><span class="p">):</span>
+        <span class="n">region_a</span><span class="p">,</span> <span class="n">region_b</span> <span class="o">=</span> <span class="n">overlap_fn</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">mirrored</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">shift</span><span class="p">))</span>
+        <span class="n">correlations</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">_normalized_overlap_correlation</span><span class="p">(</span><span class="n">region_a</span><span class="p">,</span> <span class="n">region_b</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">shifts</span><span class="p">,</span> <span class="n">correlations</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_refine_peak_subpixel</span><span class="p">(</span><span class="n">shifts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">correlations</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Refine the best integer shift with a three-point parabolic peak fit.</span>
+
+<span class="sd">    The discrete correlation curve is sampled only at integer shifts, but the</span>
+<span class="sd">    true symmetry maximum can fall between pixels.  To recover that sub-pixel</span>
+<span class="sd">    location, this helper fits a parabola through the peak bin and its immediate</span>
+<span class="sd">    neighbors and returns the parabola vertex.</span>
+
+<span class="sd">    This is the standard quadratic interpolation step used after many discrete</span>
+<span class="sd">    correlation searches because it is inexpensive, smooth, and robust when the</span>
+<span class="sd">    peak is well behaved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Identify the best integer-shift candidate first.</span>
+    <span class="n">peak_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanargmax</span><span class="p">(</span><span class="n">correlations</span><span class="p">))</span>
+    <span class="n">peak_shift</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">shifts</span><span class="p">[</span><span class="n">peak_index</span><span class="p">])</span>
+
+    <span class="c1"># A parabola fit needs one sample on each side of the peak.  If the peak is</span>
+    <span class="c1"># on the search boundary, fall back to the integer shift.</span>
+    <span class="k">if</span> <span class="n">peak_index</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">peak_index</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">correlations</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">peak_shift</span>
+
+    <span class="c1"># Fit a quadratic through the left / centre / right samples.  The denominator</span>
+    <span class="c1"># is proportional to the curvature; zero curvature means the fit is ill posed.</span>
+    <span class="n">left_corr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">correlations</span><span class="p">[</span><span class="n">peak_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">center_corr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">correlations</span><span class="p">[</span><span class="n">peak_index</span><span class="p">])</span>
+    <span class="n">right_corr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">correlations</span><span class="p">[</span><span class="n">peak_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">denominator</span> <span class="o">=</span> <span class="n">left_corr</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">center_corr</span> <span class="o">+</span> <span class="n">right_corr</span>
+    <span class="k">if</span> <span class="n">denominator</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">peak_shift</span>
+
+    <span class="c1"># The vertex offset ``delta`` is measured in bins relative to the centre</span>
+    <span class="c1"># sample.  Values outside [-1, 1] imply an unstable local fit, so keep the</span>
+    <span class="c1"># integer peak in that case.</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">left_corr</span> <span class="o">-</span> <span class="n">right_corr</span><span class="p">)</span> <span class="o">/</span> <span class="n">denominator</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">peak_shift</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">peak_shift</span> <span class="o">+</span> <span class="n">delta</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="find_center_mirror_correlation">
+<a class="viewcode-back" href="../../../api.html#alexandria.utils.geometry.find_center_mirror_correlation">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_center_mirror_correlation</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">max_shift</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Estimate phantom centre from whole-image mirror-correlation symmetry.</span>
+
+<span class="sd">    This optional centre finder treats left-right and top-bottom symmetry as two</span>
+<span class="sd">    separate 1-D alignment problems.  For each axis it mirrors the image, slides</span>
+<span class="sd">    the mirrored copy over a range of integer shifts, evaluates a normalized</span>
+<span class="sd">    correlation score at each shift, and then refines the best shift with a</span>
+<span class="sd">    three-point parabolic fit.  The refined horizontal and vertical shifts are</span>
+<span class="sd">    converted into a centre estimate relative to the image midpoint.</span>
+
+<span class="sd">    The return signature intentionally matches the contract already used by</span>
+<span class="sd">    :func:`find_center_edge_detection` so callers such as</span>
+<span class="sd">    ``UniformityAnalyzer.center_finder`` can switch algorithms without special</span>
+<span class="sd">    case unpacking.  This algorithm estimates centre only; it does not directly</span>
+<span class="sd">    measure phantom diameters, so the diameter slots are returned as ``None``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        image    : 2-D phantom image array.</span>
+<span class="sd">        max_shift: Optional cap on the integer shift search range for each axis.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        center_row   : Estimated centre row in pixels.</span>
+<span class="sd">        center_col   : Estimated centre column in pixels.</span>
+<span class="sd">        diameter_y_px: Always ``None`` for this method.</span>
+<span class="sd">        diameter_x_px: Always ``None`` for this method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Convert to float so mean subtraction and correlation arithmetic behave</span>
+    <span class="c1"># consistently even when the input image uses integer DICOM pixel types.</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="c1"># Estimate the best symmetry shift independently for left-right and</span>
+    <span class="c1"># top-bottom reflections.</span>
+    <span class="n">shifts_x</span><span class="p">,</span> <span class="n">corr_x</span> <span class="o">=</span> <span class="n">_mirror_correlation_curve</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;horizontal&#39;</span><span class="p">,</span> <span class="n">max_shift</span><span class="o">=</span><span class="n">max_shift</span><span class="p">)</span>
+    <span class="n">shifts_y</span><span class="p">,</span> <span class="n">corr_y</span> <span class="o">=</span> <span class="n">_mirror_correlation_curve</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span> <span class="n">max_shift</span><span class="o">=</span><span class="n">max_shift</span><span class="p">)</span>
+
+    <span class="c1"># Refine the integer-shift maxima to sub-pixel values using the parabolic fit.</span>
+    <span class="n">shift_x</span> <span class="o">=</span> <span class="n">_refine_peak_subpixel</span><span class="p">(</span><span class="n">shifts_x</span><span class="p">,</span> <span class="n">corr_x</span><span class="p">)</span>
+    <span class="n">shift_y</span> <span class="o">=</span> <span class="n">_refine_peak_subpixel</span><span class="p">(</span><span class="n">shifts_y</span><span class="p">,</span> <span class="n">corr_y</span><span class="p">)</span>
+
+    <span class="c1"># Convert symmetry shifts into a centre relative to the image midpoint.</span>
+    <span class="c1"># Example: a +2 px horizontal symmetry shift implies the phantom centre is</span>
+    <span class="c1"># displaced +1 px from the image midpoint in x.</span>
+    <span class="n">midpoint_x</span> <span class="o">=</span> <span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">midpoint_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">center_col</span> <span class="o">=</span> <span class="n">midpoint_x</span> <span class="o">+</span> <span class="n">shift_x</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">center_row</span> <span class="o">=</span> <span class="n">midpoint_y</span> <span class="o">+</span> <span class="n">shift_y</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+    <span class="c1"># Mirror-correlation does not estimate phantom diameter; callers that need a</span>
+    <span class="c1"># boundary can fall back to another boundary-estimation helper.</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">center_row</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">center_col</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+
+
+
 <div class="viewcode-block" id="CatPhanGeometry">
 <a class="viewcode-back" href="../../../api.html#alexandria.utils.geometry.CatPhanGeometry">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CatPhanGeometry</span><span class="p">:</span>
@@ -597,9 +804,9 @@
         <span class="n">prof_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_horiz</span><span class="p">))</span>   <span class="c1"># intensity values along the horizontal profile</span>
         <span class="n">prof_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_vert</span><span class="p">))</span>    <span class="c1"># intensity values along the vertical profile</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_horiz</span><span class="p">)):</span>
-            <span class="n">prof_h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interpn</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">image</span><span class="p">,</span> <span class="p">[</span><span class="n">roi_pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x_horiz</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="o">**</span><span class="n">interp_kwargs</span><span class="p">)</span>
+               <span class="n">prof_h</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interpn</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">image</span><span class="p">,</span> <span class="p">[[</span><span class="n">roi_pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x_horiz</span><span class="p">[</span><span class="n">i</span><span class="p">]]],</span> <span class="o">**</span><span class="n">interp_kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_vert</span><span class="p">)):</span>
-            <span class="n">prof_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interpn</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">image</span><span class="p">,</span> <span class="p">[</span><span class="n">x_vert</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">roi_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="o">**</span><span class="n">interp_kwargs</span><span class="p">)</span>
+               <span class="n">prof_v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interpn</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">image</span><span class="p">,</span> <span class="p">[[</span><span class="n">x_vert</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">roi_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">]]],</span> <span class="o">**</span><span class="n">interp_kwargs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="c1"># Discrete first derivative — peaks in |dh| and |dv| correspond to insert edges</span>
         <span class="n">dh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">prof_h</span><span class="p">)</span>   <span class="c1"># derivative of the horizontal profile</span>
