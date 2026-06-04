@@ -49,7 +49,7 @@ include = ["alexandria*"]
 
 [tool.setuptools_scm]
 write_to = "src/alexandria/_version.py"
-write_to_template = '__version__ = "{version}"\n'
+write_to_template = "__version__ = \"{version}\"\n"
 version_scheme = "post-release"
 local_scheme = "node-and-date"
 
