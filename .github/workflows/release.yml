@@ -1,7 +1,15 @@
 name: Release to PyPI
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag to release (example: v0.3.1 or refs/tags/v0.3.1)'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   publish:
@@ -13,6 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6 # Updated to v6
         with:
+          ref: ${{ inputs.release_tag || github.ref }}
           fetch-depth: 0 # Important for setuptools-scm to see tags
 
       - name: Set up Python
@@ -22,13 +31,43 @@ jobs:
 
       - name: Install tooling
         run: |
-          python -m pip install --upgrade pip build twine black isort flake8
+          python -m pip install --upgrade pip build twine black isort flake8 setuptools-scm
+
+      - name: Validate release ref and computed version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags
+
+          echo "GitHub event ref: ${GITHUB_REF}"
+          echo "GitHub SHA: ${GITHUB_SHA}"
+
+          TAG="$(git describe --tags --exact-match)"
+          echo "Exact tag at HEAD: ${TAG}"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            REQUESTED="${{ inputs.release_tag }}"
+            REQUESTED="${REQUESTED#refs/tags/}"
+            if [[ "${TAG}" != "${REQUESTED}" ]]; then
+              echo "Requested tag '${REQUESTED}' does not match checked out tag '${TAG}'." >&2
+              exit 1
+            fi
+          fi
+
+          VERSION="$(python -c "import setuptools_scm; print(setuptools_scm.get_version(root='.', version_scheme='post-release', local_scheme='no-local-version'))")"
+          echo "Computed package version: ${VERSION}"
+
+          if [[ "${VERSION}" == *+* ]]; then
+            echo "Refusing to publish local version '${VERSION}' to PyPI." >&2
+            exit 1
+          fi
 
       - name: Quick style checks
         run: |
-          black --check . || true
-          isort --check-only . || true
-          flake8 || true
+          black --check .
+          isort --check-only .
+          flake8
 
       - name: Build distributions
         run: |
