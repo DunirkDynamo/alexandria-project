@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>alexandria.plotters.ctp401_plotter &mdash; alexandria 0.4.0.post0 documentation</title>
+  <title>alexandria.plotters.ctp401_plotter &mdash; alexandria 0.5.0.post0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=538ed087"></script>
+      <script src="../../../_static/documentation_options.js?v=2ef5829c"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -77,8 +77,6 @@
 <span class="sd">Creates comprehensive visualization plots for 4-ROI linearity analysis results.</span>
 <span class="sd">Displays main image with ROI circles, per-ROI histograms, and 2D heatmaps.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.patches</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">patches</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -184,7 +182,6 @@
                 <span class="n">ax_heat</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
                 <span class="k">continue</span>
 
-            <span class="n">angle_deg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roi_angles</span><span class="p">[</span><span class="n">material</span><span class="p">]</span>
             <span class="n">color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roi_colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">material</span><span class="p">,</span> <span class="s2">&quot;white&quot;</span><span class="p">)</span>
             <span class="n">display_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roi_display_names</span><span class="p">[</span><span class="n">material</span><span class="p">]</span>
 
