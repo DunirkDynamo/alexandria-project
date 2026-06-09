@@ -4,10 +4,11 @@ This module collects lightweight, well-documented image processing
 helpers commonly needed by CatPhan analyzers and plotters.
 """
 
+from typing import Optional, Tuple
+
 import numpy as np
 from scipy import ndimage
 from scipy.interpolate import interpn
-from typing import Tuple, Optional
 
 
 class ImageProcessor:
@@ -16,27 +17,45 @@ class ImageProcessor:
         return ndimage.gaussian_filter(image, sigma=sigma)
 
     @staticmethod
-    def extract_profile(image: np.ndarray, start: Tuple[float, float], end: Tuple[float, float], n_points: int = 100) -> np.ndarray:
+    def extract_profile(
+        image: np.ndarray,
+        start: Tuple[float, float],
+        end: Tuple[float, float],
+        n_points: int = 100,
+    ) -> np.ndarray:
         x_samples = np.linspace(start[0], end[0], n_points)
         y_samples = np.linspace(start[1], end[1], n_points)
         ny, nx = image.shape
         x_grid = np.linspace(0, nx - 1, nx)
         y_grid = np.linspace(0, ny - 1, ny)
         sample_coords = np.vstack((y_samples, x_samples)).T
-        vals = interpn((y_grid, x_grid), image, sample_coords, method='linear', bounds_error=False, fill_value=0.0)
+        vals = interpn(
+            (y_grid, x_grid),
+            image,
+            sample_coords,
+            method="linear",
+            bounds_error=False,
+            fill_value=0.0,
+        )
         return vals
 
     @staticmethod
-    def threshold_image(image: np.ndarray, threshold: float, mode: str = 'above') -> np.ndarray:
-        if mode == 'above':
+    def threshold_image(
+        image: np.ndarray, threshold: float, mode: str = "above"
+    ) -> np.ndarray:
+        if mode == "above":
             return image > threshold
-        elif mode == 'below':
+        elif mode == "below":
             return image < threshold
         else:
             raise ValueError("mode must be 'above' or 'below'")
 
     @staticmethod
-    def estimate_noise(image: np.ndarray, roi_center: Optional[Tuple[float, float]] = None, roi_size: int = 50) -> float:
+    def estimate_noise(
+        image: np.ndarray,
+        roi_center: Optional[Tuple[float, float]] = None,
+        roi_size: int = 50,
+    ) -> float:
         ny, nx = image.shape
         if roi_center is None:
             cx, cy = nx // 2, ny // 2
@@ -51,14 +70,14 @@ class ImageProcessor:
         return float(np.std(roi))
 
     @staticmethod
-    def find_edges(image: np.ndarray, method: str = 'sobel') -> np.ndarray:
-        if method == 'sobel':
+    def find_edges(image: np.ndarray, method: str = "sobel") -> np.ndarray:
+        if method == "sobel":
             sx = ndimage.sobel(image, axis=0)
             sy = ndimage.sobel(image, axis=1)
-        elif method == 'prewitt':
+        elif method == "prewitt":
             sx = ndimage.prewitt(image, axis=0)
             sy = ndimage.prewitt(image, axis=1)
-        elif method == 'scharr':
+        elif method == "scharr":
             kx = np.array([[-3, 0, 3], [-10, 0, 10], [-3, 0, 3]])
             ky = kx.T
             sx = ndimage.convolve(image, kx)

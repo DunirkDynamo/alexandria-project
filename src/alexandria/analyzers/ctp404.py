@@ -5,8 +5,9 @@ Unified analyzer for CTP404 sensitometry analysis, combining functionality
 from catphan404 and XVI-CatPhan implementations.
 """
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
-from typing import Tuple, List, Dict, Optional, Any
 from scipy import ndimage
 
 
@@ -25,16 +26,23 @@ class CTP404Analyzer:
       objects and a ``slice_index``; the analyzer will form a simple
       3-slice average to improve SNR before analysis.
     """
-    
+
     # Material names for each ROI (9 ROIs)
     MATERIALS = [
-        'Delrin', 'none', 'Acrylic', 'Air', 'Polystyrene',
-        'LDPE', 'PMP', 'Teflon', 'Air2'
+        "Delrin",
+        "none",
+        "Acrylic",
+        "Air",
+        "Polystyrene",
+        "LDPE",
+        "PMP",
+        "Teflon",
+        "Air2",
     ]
-    
+
     # ROI angles (degrees) relative to phantom rotation
     ROI_ANGLES = [0, 30, 60, 90, 120, 180, -120, -60, -90]
-    
+
     def __init__(
         self,
         image: Optional[np.ndarray] = None,
@@ -54,14 +62,16 @@ class CTP404Analyzer:
         # measurements.
         if image is not None:
             self.image = image.astype(float)
-            self.mode = 'single'
+            self.mode = "single"
         elif dicom_set is not None and slice_index is not None:
             self.dicom_set = dicom_set
             self.slice_index = slice_index
             self.image = self._prepare_averaged_image()
-            self.mode = 'dicom'
+            self.mode = "dicom"
         else:
-            raise ValueError("Must provide either 'image' or both 'dicom_set' and 'slice_index'")
+            raise ValueError(
+                "Must provide either 'image' or both 'dicom_set' and 'slice_index'"
+            )
 
         # Validate and store center coordinates. Center must be provided
         # by the caller (or detected externally) because ROI placement
@@ -92,11 +102,11 @@ class CTP404Analyzer:
         self.results = {}
         self.roi_coordinates = []
         self.slice_thickness = None
-        
+
     def _prepare_averaged_image(self) -> np.ndarray:
         """
         Create 3-slice averaged image for improved SNR.
-        
+
         Returns:
             Averaged image array
         """
@@ -118,17 +128,21 @@ class CTP404Analyzer:
             im3 = self.dicom_set[idx - 1].pixel_array
 
         # Convert to float before averaging to avoid integer truncation
-        averaged_image = (im1.astype(float) + im2.astype(float) + im3.astype(float)) / 3.0
+        averaged_image = (
+            im1.astype(float) + im2.astype(float) + im3.astype(float)
+        ) / 3.0
         return averaged_image
-    
-    def _create_circular_mask(self, center: Tuple[float, float], radius: float) -> np.ndarray:
+
+    def _create_circular_mask(
+        self, center: Tuple[float, float], radius: float
+    ) -> np.ndarray:
         """
         Create a boolean circular mask.
-        
+
         Args:
             center: (x, y) center coordinates
             radius: Radius in pixels
-        
+
         Returns:
             Boolean mask array
         """
@@ -138,7 +152,7 @@ class CTP404Analyzer:
         # grids.
         h, w = self.image.shape
         Y, X = np.ogrid[:h, :w]
-        dist_from_center = np.sqrt((X - center[0])**2 + (Y - center[1])**2)
+        dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
         return dist_from_center <= radius
 
     def _compute_roi_circle(self, angle_deg: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -185,14 +199,12 @@ class CTP404Analyzer:
             Rotation angle in degrees (sets and returns `self.rotation_offset`)
         """
         # Defer imports to avoid circular imports
-        from alexandria.utils import find_rotation, find_center_edge_detection
+        from alexandria.utils import find_center_edge_detection, find_rotation
 
         # If center somehow missing, attempt edge-based center finding
-        if getattr(self, 'center', None) is None:
+        if getattr(self, "center", None) is None:
             center_row, center_col = find_center_edge_detection(
-                self.image,
-                threshold=400.0,
-                fallback_threshold=300.0
+                self.image, threshold=400.0, fallback_threshold=300.0
             )
             self.center = (center_col, center_row)
 
@@ -206,7 +218,7 @@ class CTP404Analyzer:
             iterations=5,
             profile_length=25,
             granularity=3,
-            interp_kwargs={'bounds_error': False, 'fill_value': 0},
+            interp_kwargs={"bounds_error": False, "fill_value": 0},
             initial_angle_deg=initial_angle_deg,
         )
 
@@ -220,14 +232,14 @@ class CTP404Analyzer:
         # others request only the angle; returning the full tuple keeps
         # the method flexible.
         return float(self.rotation_offset), top_pt, bottom_pt
-    
+
     def analyze(self, verbose: bool = False) -> Dict:
         """
         Perform contrast analysis on all 9 ROIs.
-        
+
         Args:
             verbose: Print progress information
-        
+
         Returns:
             Dictionary containing analysis results
         """
@@ -261,16 +273,18 @@ class CTP404Analyzer:
             mean_hu = float(np.mean(roi_values))
             std_hu = float(np.std(roi_values))
 
-            contrast_results.append({
-                'roi_number': i + 1,
-                'material': material,
-                'angle_deg': angle,
-                'roi_radius_mm': float(radius_mm),
-                'mean_hu': mean_hu,
-                'std_hu': std_hu,
-                'center_x': roi_x,
-                'center_y': roi_y
-            })
+            contrast_results.append(
+                {
+                    "roi_number": i + 1,
+                    "material": material,
+                    "angle_deg": angle,
+                    "roi_radius_mm": float(radius_mm),
+                    "mean_hu": mean_hu,
+                    "std_hu": std_hu,
+                    "center_x": roi_x,
+                    "center_y": roi_y,
+                }
+            )
 
             # Store polygon/perimeter coordinates for plotting overlays
             theta = np.linspace(0, 2 * np.pi, 100)
@@ -279,24 +293,26 @@ class CTP404Analyzer:
             self.roi_coordinates.append((x_circle, y_circle))
 
             if verbose:
-                print(f"  ROI {i+1} ({material:12s}): {mean_hu:7.1f} ± {std_hu:5.1f} HU")
-        
+                print(
+                    f"  ROI {i+1} ({material:12s}): {mean_hu:7.1f} ± {std_hu:5.1f} HU"
+                )
+
         # Calculate Low Contrast Visibility (LCV)
         # LCV is calculated from specific material pairs
         lcv = self._calculate_lcv(contrast_results)
-        
+
         self.results = {
-            'contrast': contrast_results,
-            'LCV_percent': lcv,
-            'rotation_offset': self.rotation_offset,
-            'mode': self.mode
+            "contrast": contrast_results,
+            "LCV_percent": lcv,
+            "rotation_offset": self.rotation_offset,
+            "mode": self.mode,
         }
-        
+
         if verbose:
             print(f"\nLow Contrast Visibility: {lcv:.2f}%")
-        
+
         return self.results
-    
+
     def _calculate_lcv(self, contrast_results: List[Dict]) -> float:
         """
         Calculate Low Contrast Visibility from material ROIs.
@@ -315,12 +331,12 @@ class CTP404Analyzer:
         ldpe_mean = ldpe_std = None
 
         for roi in contrast_results:
-            if roi['material'] == 'Polystyrene':
-                polystyrene_mean = roi['mean_hu']
-                polystyrene_std  = roi['std_hu']
-            elif roi['material'] == 'LDPE':
-                ldpe_mean = roi['mean_hu']
-                ldpe_std  = roi['std_hu']
+            if roi["material"] == "Polystyrene":
+                polystyrene_mean = roi["mean_hu"]
+                polystyrene_std = roi["std_hu"]
+            elif roi["material"] == "LDPE":
+                ldpe_mean = roi["mean_hu"]
+                ldpe_std = roi["std_hu"]
 
         if None in (polystyrene_mean, polystyrene_std, ldpe_mean, ldpe_std):
             return 0.0
@@ -330,34 +346,34 @@ class CTP404Analyzer:
             return 0.0
 
         return float(3.25 * (polystyrene_std + ldpe_std) / denominator)
-    
+
     def get_results_summary(self) -> str:
         """
         Get formatted summary of analysis results.
-        
+
         Returns:
             Multi-line string summary
         """
         if not self.results:
             return "No analysis results available. Run analyze() first."
-        
+
         lines = ["CTP404 Contrast Analysis Results", "=" * 40]
-        
-        for roi in self.results['contrast']:
+
+        for roi in self.results["contrast"]:
             lines.append(
                 f"ROI {roi['roi_number']:2d} ({roi['material']:12s}): "
                 f"{roi['mean_hu']:7.1f} ± {roi['std_hu']:5.1f} HU"
             )
-        
+
         lines.append(f"\nLow Contrast Visibility: {self.results['LCV_percent']:.2f}%")
         lines.append(f"Rotation Offset: {self.results['rotation_offset']:.2f}°")
-        
+
         return "\n".join(lines)
-    
+
     def to_dict(self) -> Dict:
         """
         Export results as dictionary.
-        
+
         Returns:
             Results dictionary
         """

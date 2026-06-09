@@ -53,4 +53,13 @@ write_to_template = "__version__ = \"{version}\"\n"
 version_scheme = "post-release"
 local_scheme = "no-local-version"
 
+[tool.black]
+line-length = 88
+target-version = ["py314"]
+include = "\\.pyi?$"
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
 

@@ -5,8 +5,10 @@ Combines CTP401Analyzer with CTP401Plotter for convenient
 4-ROI linearity analysis and visualization in a single class.
 """
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import matplotlib.pyplot as plt
-from typing import Optional, Tuple, List, Dict, Any
+
 from ..analyzers.ctp401 import CTP401Analyzer
 
 
@@ -48,13 +50,16 @@ class CTP401ModuleReporter:
         if self.results is None:
             self.analyze(verbose=False)
         from ..plotters.ctp401_plotter import CTP401Plotter
+
         plotter = CTP401Plotter(self.analyzer)
         self.figure = plotter.plot(**kwargs)
         if show:
             plt.show()
         return self.figure
 
-    def analyze_and_plot(self, t_offset: float = 0.0, verbose: bool = True, show: bool = False, **kwargs) -> Tuple[Dict[str, Any], plt.Figure]:
+    def analyze_and_plot(
+        self, t_offset: float = 0.0, verbose: bool = True, show: bool = False, **kwargs
+    ) -> Tuple[Dict[str, Any], plt.Figure]:
         results = self.analyze(t_offset=t_offset, verbose=verbose)
         fig = self.plot(show=show, **kwargs)
         return results, fig
@@ -62,7 +67,7 @@ class CTP401ModuleReporter:
     def save_plot(self, filepath: str, dpi: int = 150, **kwargs):
         if self.figure is None:
             self.plot()
-        self.figure.savefig(filepath, dpi=dpi, bbox_inches='tight', **kwargs)
+        self.figure.savefig(filepath, dpi=dpi, bbox_inches="tight", **kwargs)
 
     def get_summary(self) -> str:
         if self.results is None:

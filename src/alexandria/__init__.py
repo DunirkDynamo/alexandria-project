@@ -12,31 +12,32 @@ except Exception:
     # Fallback when package isn't installed via setuptools (dev/editable installs)
     __version__ = "0+unknown"
 
-# Core analyzers (imported lazily by subpackages)
-from .analyzers.uniformity import UniformityAnalyzer
-from .analyzers.high_contrast import HighContrastAnalyzer
 from .analyzers.ctp401 import CTP401Analyzer
 from .analyzers.ctp404 import CTP404Analyzer
 from .analyzers.ctp515 import CTP515Analyzer
 from .analyzers.detailed_uniformity import DetailedUniformityAnalyzer
+from .analyzers.high_contrast import HighContrastAnalyzer
 
-# Convenience wrappers (analyzer + plotter)
-from .wrappers.uniformity_wrapper import UniformityModuleReporter
-from .wrappers.high_contrast_wrapper import HighContrastModuleReporter
+# Core analyzers (imported lazily by subpackages)
+from .analyzers.uniformity import UniformityAnalyzer
 from .wrappers.ctp401_wrapper import CTP401ModuleReporter
 from .wrappers.ctp404_wrapper import CTP404ModuleReporter
 from .wrappers.ctp515_wrapper import CTP515ModuleReporter
+from .wrappers.high_contrast_wrapper import HighContrastModuleReporter
+
+# Convenience wrappers (analyzer + plotter)
+from .wrappers.uniformity_wrapper import UniformityModuleReporter
 
 __all__ = [
-    'UniformityAnalyzer',
-    'HighContrastAnalyzer',
-    'CTP401Analyzer',
-    'CTP404Analyzer',
-    'CTP515Analyzer',
-    'DetailedUniformityAnalyzer',
-    'UniformityModuleReporter',
-    'HighContrastModuleReporter',
-    'CTP401ModuleReporter',
-    'CTP404ModuleReporter',
-    'CTP515ModuleReporter',
+    "UniformityAnalyzer",
+    "HighContrastAnalyzer",
+    "CTP401Analyzer",
+    "CTP404Analyzer",
+    "CTP515Analyzer",
+    "DetailedUniformityAnalyzer",
+    "UniformityModuleReporter",
+    "HighContrastModuleReporter",
+    "CTP401ModuleReporter",
+    "CTP404ModuleReporter",
+    "CTP515ModuleReporter",
 ]

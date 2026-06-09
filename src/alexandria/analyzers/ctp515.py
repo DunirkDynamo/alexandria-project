@@ -8,9 +8,10 @@ to measure Contrast-to-Noise Ratio (CNR) and contrast detectability.
 
 # Sphinx/autodoc: expanded docstrings and inline comments for clarity.
 
-import numpy as np
 import math
-from typing import Optional, Tuple, List, Dict, Any, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
 
 
 class CTP515Analyzer:
@@ -37,7 +38,7 @@ class CTP515Analyzer:
     # ROI specifications (angles in degrees, sizes in mm)
     ROI_ANGLES = [
         -87.4,
-        -69.1,#-105.7,
+        -69.1,  # -105.7,
         -52.7,
         -38.5,
         -25.1,
@@ -45,7 +46,14 @@ class CTP515Analyzer:
     ]
 
     ROI_DISTANCE_MM = 50  # Distance from center to ROI centers
-    ROI_RADII_MM = [6, 3.5, 3, 2.5, 2, 1.5]  # ROI radii for 15, 9, 8, 7, 6, 5 mm diameters
+    ROI_RADII_MM = [
+        6,
+        3.5,
+        3,
+        2.5,
+        2,
+        1.5,
+    ]  # ROI radii for 15, 9, 8, 7, 6, 5 mm diameters
 
     # ROI settings mapped by diameter
     ROI_SETTINGS = {
@@ -142,12 +150,16 @@ class CTP515Analyzer:
                 im2 = self.dicom_set[idx + 1].pixel_array
                 im3 = self.dicom_set[idx - 1].pixel_array
 
-            self.averaged_image = (im1.astype(float) + im2.astype(float) + im3.astype(float)) / 3.0
+            self.averaged_image = (
+                im1.astype(float) + im2.astype(float) + im3.astype(float)
+            ) / 3.0
             self.image = self.averaged_image
 
             # Extract pixel spacing from DICOM if not provided
             if self.pixel_spacing is None:
-                self.pixel_spacing = float(self.dicom_set[self.slice_index].PixelSpacing[0])
+                self.pixel_spacing = float(
+                    self.dicom_set[self.slice_index].PixelSpacing[0]
+                )
 
             return self.averaged_image
         else:
@@ -176,10 +188,7 @@ class CTP515Analyzer:
             raise TypeError("angle_offset must be a float or int")
 
     def _circular_roi_mask(
-        self,
-        shape: Tuple[int, int],
-        center: Tuple[float, float],
-        radius: float
+        self, shape: Tuple[int, int], center: Tuple[float, float], radius: float
     ) -> np.ndarray:
         """
         Create a circular boolean mask.
@@ -195,7 +204,7 @@ class CTP515Analyzer:
         ny, nx = shape
         y, x = np.ogrid[:ny, :nx]
         cx, cy = center
-        dist_from_center = np.sqrt((x - cx)**2 + (y - cy)**2)
+        dist_from_center = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
         return dist_from_center <= radius
 
     def analyze(self, verbose: bool = True) -> Dict[str, Any]:
@@ -222,9 +231,15 @@ class CTP515Analyzer:
 
         # Compute center if not provided
         if self.center is None:
-            from alexandria.utils import find_center_edge_detection, compute_phantom_boundary, draw_boundary
+            from alexandria.utils import (
+                compute_phantom_boundary,
+                draw_boundary,
+                find_center_edge_detection,
+            )
 
-            def _unpack_center_result(value: Any) -> Tuple[float, float, Optional[float], Optional[float]]:
+            def _unpack_center_result(
+                value: Any,
+            ) -> Tuple[float, float, Optional[float], Optional[float]]:
                 if isinstance(value, (tuple, list)):
                     if len(value) >= 4:
                         return float(value[0]), float(value[1]), value[2], value[3]
@@ -236,13 +251,17 @@ class CTP515Analyzer:
 
             if self.center_finder is not None:
                 result = self.center_finder(self.image, **self.center_finder_kwargs)
-                center_row, center_col, diameter_y, diameter_x = _unpack_center_result(result)
+                center_row, center_col, diameter_y, diameter_x = _unpack_center_result(
+                    result
+                )
             else:
-                center_row, center_col, diameter_y, diameter_x = find_center_edge_detection(
-                    self.image,
-                    threshold=self.center_threshold,
-                    fallback_threshold=self.center_threshold_fallback,
-                    return_diameters=True
+                center_row, center_col, diameter_y, diameter_x = (
+                    find_center_edge_detection(
+                        self.image,
+                        threshold=self.center_threshold,
+                        fallback_threshold=self.center_threshold_fallback,
+                        return_diameters=True,
+                    )
                 )
             self.center = (center_col, center_row)  # Convert to (x, y)
 
@@ -254,11 +273,11 @@ class CTP515Analyzer:
                     self.center,
                     self.pixel_spacing,
                     threshold=self.center_threshold,
-                    fallback_threshold=self.center_threshold_fallback
+                    fallback_threshold=self.center_threshold_fallback,
                 )
             self.boundary = {
-                'x': boundary_x.tolist() if len(boundary_x) > 0 else [],
-                'y': boundary_y.tolist() if len(boundary_y) > 0 else []
+                "x": boundary_x.tolist() if len(boundary_x) > 0 else [],
+                "y": boundary_y.tolist() if len(boundary_y) > 0 else [],
             }
 
         # Validate inputs
@@ -277,7 +296,9 @@ class CTP515Analyzer:
         bg_dist_mm = 35
         bg_radius_mm = 5
         # Offset is CCW-positive in math space; image indexing is CW-positive, so subtract for sampling.
-        bg_angle_deg = self.ROI_ANGLES[0] - self.angle_offset  # Use first angle for background
+        bg_angle_deg = (
+            self.ROI_ANGLES[0] - self.angle_offset
+        )  # Use first angle for background
         bg_angle_rad = math.radians(bg_angle_deg)
 
         # Convert background ROI location to pixels
@@ -314,7 +335,9 @@ class CTP515Analyzer:
             y_full = cy + distance_px * math.sin(angle_rad)
 
             # Create circular ROI mask
-            mask = self._circular_roi_mask(self.image.shape, (x_full, y_full), radius_px)
+            mask = self._circular_roi_mask(
+                self.image.shape, (x_full, y_full), radius_px
+            )
             vals = self.image[mask]
 
             # Skip if insufficient data
@@ -337,31 +360,33 @@ class CTP515Analyzer:
             # Keep deltas as floats for accurate distance calculation
             x_delta = float(x_full - cx)
             y_delta = float(y_full - cy)
-            r_delta = float((x_delta**2 + y_delta**2)**0.5)
+            r_delta = float((x_delta**2 + y_delta**2) ** 0.5)
 
-            results[f'roi_{roi_name}mm'] = {
-                'x': float(x_full),
-                'y': float(y_full),
-                'r': float(radius_px),
-                'x_delta': x_delta,
-                'y_delta': y_delta,
-                'r_delta': r_delta,
-                'angle': float(angle_deg),
-                'mean': mean_signal,
-                'std': std_signal,
-                'bg_mean': mean_bg,
-                'bg_std': std_bg,
-                'cnr': float(cnr),
-                'contrast': float(contrast),
+            results[f"roi_{roi_name}mm"] = {
+                "x": float(x_full),
+                "y": float(y_full),
+                "r": float(radius_px),
+                "x_delta": x_delta,
+                "y_delta": y_delta,
+                "r_delta": r_delta,
+                "angle": float(angle_deg),
+                "mean": mean_signal,
+                "std": std_signal,
+                "bg_mean": mean_bg,
+                "bg_std": std_bg,
+                "cnr": float(cnr),
+                "contrast": float(contrast),
             }
 
         # Store and return summary
-        self.results = {'n_detected': len(results), 'blobs': results}
+        self.results = {"n_detected": len(results), "blobs": results}
 
         if verbose:
             print(f"Low-contrast analysis: {len(results)} ROIs detected")
             for roi_name, roi_data in results.items():
-                print(f"  {roi_name}: CNR={roi_data['cnr']:.2f}, Contrast={roi_data['contrast']:.1f}%")
+                print(
+                    f"  {roi_name}: CNR={roi_data['cnr']:.2f}, Contrast={roi_data['contrast']:.1f}%"
+                )
             print()
 
         return self.results
@@ -386,11 +411,11 @@ class CTP515Analyzer:
             raise ValueError("Analysis must be run before getting results")
 
         summary = {}
-        summary["ROIs Detected"] = str(self.results['n_detected'])
+        summary["ROIs Detected"] = str(self.results["n_detected"])
 
         # Add CNR for each ROI
-        for roi_name, roi_data in self.results['blobs'].items():
-            diameter = roi_name.replace('roi_', '').replace('mm', '')
+        for roi_name, roi_data in self.results["blobs"].items():
+            diameter = roi_name.replace("roi_", "").replace("mm", "")
             summary[f"{diameter}mm CNR"] = f"{roi_data['cnr']:.2f}"
 
         return summary

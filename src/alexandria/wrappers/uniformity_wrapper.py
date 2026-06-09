@@ -5,8 +5,10 @@ Combines UniformityAnalyzer with UniformityPlotter for convenient
 analysis and visualization in a single class.
 """
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import matplotlib.pyplot as plt
-from typing import Optional, Tuple, List, Dict, Any
+
 from ..analyzers.uniformity import UniformityAnalyzer
 
 
@@ -43,13 +45,16 @@ class UniformityModuleReporter:
         if self.results is None:
             self.analyze(verbose=False)
         from ..plotters.uniformity_plotter import UniformityPlotter
+
         plotter = UniformityPlotter(self.analyzer)
         self.figure = plotter.plot(**kwargs)
         if show:
             plt.show()
         return self.figure
 
-    def analyze_and_plot(self, verbose: bool = True, show: bool = False, **kwargs) -> Tuple[Dict[str, Any], plt.Figure]:
+    def analyze_and_plot(
+        self, verbose: bool = True, show: bool = False, **kwargs
+    ) -> Tuple[Dict[str, Any], plt.Figure]:
         results = self.analyze(verbose=verbose)
         figure = self.plot(show=show, **kwargs)
         return results, figure
@@ -57,7 +62,7 @@ class UniformityModuleReporter:
     def save_plot(self, filepath: str, dpi: int = 300, **kwargs):
         if self.figure is None:
             self.plot()
-        self.figure.savefig(filepath, dpi=dpi, bbox_inches='tight', **kwargs)
+        self.figure.savefig(filepath, dpi=dpi, bbox_inches="tight", **kwargs)
 
     def get_summary(self) -> Dict[str, str]:
         if self.results is None:

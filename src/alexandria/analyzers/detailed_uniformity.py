@@ -5,7 +5,7 @@ Samples pixel values along concentric circular profiles and records
 angle/value pairs for each radius.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -15,6 +15,7 @@ class DetailedUniformityAnalyzer:
     """
     Analyzer that samples concentric circular profiles for uniformity checks.
     """
+
     def __init__(
         self,
         image: Optional[np.ndarray] = None,
@@ -46,7 +47,11 @@ class DetailedUniformityAnalyzer:
         else:
             self.pixel_spacing = None
 
-        self.radii_mm = radii_mm if radii_mm is not None else [5.0, 10.0, 20.0, 30.0, 40.0, 50.0, 55.0, 60.0, 65.0, 70.0]
+        self.radii_mm = (
+            radii_mm
+            if radii_mm is not None
+            else [5.0, 10.0, 20.0, 30.0, 40.0, 50.0, 55.0, 60.0, 65.0, 70.0]
+        )
         self.sample_step_mm = float(sample_step_mm)
         self.n_samples = int(n_samples)
 
@@ -117,7 +122,7 @@ class DetailedUniformityAnalyzer:
                 self.image,
                 threshold=self.center_threshold,
                 fallback_threshold=self.center_threshold_fallback,
-                return_diameters=True
+                return_diameters=True,
             )
 
         self.center = (float(col), float(row))
@@ -133,7 +138,9 @@ class DetailedUniformityAnalyzer:
     def _plot_radii_mm(self) -> List[float]:
         return [float(r) for r in self.radii_mm]
 
-    def _sample_circle(self, center_x: float, center_y: float, radius_px: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _sample_circle(
+        self, center_x: float, center_y: float, radius_px: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         angles_deg = np.linspace(0.0, 360.0, self.n_samples, endpoint=False)
         angles_rad = np.deg2rad(angles_deg)
 
@@ -141,7 +148,7 @@ class DetailedUniformityAnalyzer:
         ys = center_y + radius_px * np.sin(angles_rad)
 
         coords = np.vstack([ys, xs])
-        values = map_coordinates(self.image, coords, order=1, mode='nearest')
+        values = map_coordinates(self.image, coords, order=1, mode="nearest")
         return angles_deg, values
 
     def analyze(self) -> Dict[str, Any]:
@@ -162,7 +169,9 @@ class DetailedUniformityAnalyzer:
             angles_deg, values = self._sample_circle(center_x, center_y, radius_px)
             angle_start_deg = float(angles_deg[0]) if len(angles_deg) > 0 else 0.0
             angle_end_deg = float(angles_deg[-1]) if len(angles_deg) > 0 else 0.0
-            angle_increment_deg = float(angles_deg[1] - angles_deg[0]) if len(angles_deg) > 1 else 0.0
+            angle_increment_deg = (
+                float(angles_deg[1] - angles_deg[0]) if len(angles_deg) > 1 else 0.0
+            )
 
             profile = {
                 "radius_mm": float(radius_mm),
@@ -175,18 +184,20 @@ class DetailedUniformityAnalyzer:
                 "max": float(np.max(values)),
             }
             self.profile_data.append(profile)
-            profile_results.append({
-                "radius_mm": profile["radius_mm"],
-                "radius_px": profile["radius_px"],
-                "start_angle_deg": angle_start_deg,
-                "end_angle_deg": angle_end_deg,
-                "angle_increment_deg": angle_increment_deg,
-                "values": profile["values"].tolist(),
-                "mean": profile["mean"],
-                "std": profile["std"],
-                "min": profile["min"],
-                "max": profile["max"],
-            })
+            profile_results.append(
+                {
+                    "radius_mm": profile["radius_mm"],
+                    "radius_px": profile["radius_px"],
+                    "start_angle_deg": angle_start_deg,
+                    "end_angle_deg": angle_end_deg,
+                    "angle_increment_deg": angle_increment_deg,
+                    "values": profile["values"].tolist(),
+                    "mean": profile["mean"],
+                    "std": profile["std"],
+                    "min": profile["min"],
+                    "max": profile["max"],
+                }
+            )
 
         self.results = {
             "center": [center_x, center_y],

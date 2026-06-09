@@ -4,13 +4,16 @@ Geometry Utilities for CatPhan Phantom Analysis
 Provides functions for finding phantom centers, rotations, and geometric measurements.
 """
 
+from typing import List, Optional, Tuple, Union
+
 import numpy as np
 from scipy.interpolate import interpn
 from scipy.signal import find_peaks, peak_widths
-from typing import Tuple, List, Optional, Union
 
 
-def _normalized_overlap_correlation(region_a: np.ndarray, region_b: np.ndarray) -> float:
+def _normalized_overlap_correlation(
+    region_a: np.ndarray, region_b: np.ndarray
+) -> float:
     """Compute a normalized correlation score for two overlapping image regions.
 
     The mirror-correlation centre finder compares the original image against a
@@ -32,7 +35,7 @@ def _normalized_overlap_correlation(region_a: np.ndarray, region_b: np.ndarray) 
     # An empty overlap can occur if an invalid shift slips through.  Mark that
     # trial as unusable instead of raising.
     if flat_a.size == 0 or flat_b.size == 0:
-        return float('nan')
+        return float("nan")
 
     # Remove the mean from each region so broad intensity offsets do not drive
     # the score.  This makes the method respond to symmetry, not to average HU.
@@ -43,11 +46,13 @@ def _normalized_overlap_correlation(region_a: np.ndarray, region_b: np.ndarray) 
     # by zero.  Returning NaN keeps the peak search robust.
     denom = np.linalg.norm(flat_a) * np.linalg.norm(flat_b)
     if denom == 0:
-        return float('nan')
+        return float("nan")
     return float(np.dot(flat_a, flat_b) / denom)
 
 
-def _horizontal_overlap(image: np.ndarray, mirrored: np.ndarray, shift: int) -> Tuple[np.ndarray, np.ndarray]:
+def _horizontal_overlap(
+    image: np.ndarray, mirrored: np.ndarray, shift: int
+) -> Tuple[np.ndarray, np.ndarray]:
     """Return the overlapping image regions for a horizontal shift.
 
     Example:
@@ -63,7 +68,9 @@ def _horizontal_overlap(image: np.ndarray, mirrored: np.ndarray, shift: int) -> 
     return image[:, : image.shape[1] + shift], mirrored[:, -shift:]
 
 
-def _vertical_overlap(image: np.ndarray, mirrored: np.ndarray, shift: int) -> Tuple[np.ndarray, np.ndarray]:
+def _vertical_overlap(
+    image: np.ndarray, mirrored: np.ndarray, shift: int
+) -> Tuple[np.ndarray, np.ndarray]:
     """Return the overlapping image regions for a vertical shift.
 
     Example:
@@ -77,7 +84,9 @@ def _vertical_overlap(image: np.ndarray, mirrored: np.ndarray, shift: int) -> Tu
     return image[: image.shape[0] + shift, :], mirrored[-shift:, :]
 
 
-def _mirror_correlation_curve(image: np.ndarray, axis: str, max_shift: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
+def _mirror_correlation_curve(
+    image: np.ndarray, axis: str, max_shift: Optional[int] = None
+) -> Tuple[np.ndarray, np.ndarray]:
     """Compute mirror-correlation scores as a function of integer pixel shift.
 
     The image is mirrored about the requested axis and then compared with the
@@ -98,11 +107,11 @@ def _mirror_correlation_curve(image: np.ndarray, axis: str, max_shift: Optional[
     """
     # Build the mirrored comparison image and choose the overlap helper that
     # matches the requested axis.
-    if axis == 'horizontal':
+    if axis == "horizontal":
         mirrored = np.fliplr(image)
         default_limit = image.shape[1] // 2 - 1
         overlap_fn = _horizontal_overlap
-    elif axis == 'vertical':
+    elif axis == "vertical":
         mirrored = np.flipud(image)
         default_limit = image.shape[0] // 2 - 1
         overlap_fn = _vertical_overlap
@@ -162,7 +171,9 @@ def _refine_peak_subpixel(shifts: np.ndarray, correlations: np.ndarray) -> float
     return float(peak_shift + delta)
 
 
-def find_center_mirror_correlation(image: np.ndarray, max_shift: Optional[int] = None) -> Tuple[float, float, None, None]:
+def find_center_mirror_correlation(
+    image: np.ndarray, max_shift: Optional[int] = None
+) -> Tuple[float, float, None, None]:
     """Estimate phantom centre from whole-image mirror-correlation symmetry.
 
     This optional centre finder treats left-right and top-bottom symmetry as two
@@ -194,8 +205,12 @@ def find_center_mirror_correlation(image: np.ndarray, max_shift: Optional[int] =
 
     # Estimate the best symmetry shift independently for left-right and
     # top-bottom reflections.
-    shifts_x, corr_x = _mirror_correlation_curve(image, axis='horizontal', max_shift=max_shift)
-    shifts_y, corr_y = _mirror_correlation_curve(image, axis='vertical', max_shift=max_shift)
+    shifts_x, corr_x = _mirror_correlation_curve(
+        image, axis="horizontal", max_shift=max_shift
+    )
+    shifts_y, corr_y = _mirror_correlation_curve(
+        image, axis="vertical", max_shift=max_shift
+    )
 
     # Refine the integer-shift maxima to sub-pixel values using the parabolic fit.
     shift_x = _refine_peak_subpixel(shifts_x, corr_x)
@@ -218,7 +233,9 @@ class CatPhanGeometry:
     """Legacy class-based geometry helpers. Prefer the module-level functions for new code."""
 
     @staticmethod
-    def find_center(image: np.ndarray, threshold: float = 400) -> Tuple[List[float], List[np.ndarray]]:
+    def find_center(
+        image: np.ndarray, threshold: float = 400
+    ) -> Tuple[List[float], List[np.ndarray]]:
         """
         Locate the phantom centre from a 2-D CT image using threshold crossings.
 
@@ -236,12 +253,15 @@ class CatPhanGeometry:
                       phantom boundary.
         """
         # Image dimensions and midpoint pixel for profile extraction
-        sz       = np.array(image.shape)          # [rows, cols]
-        matrix_c = (np.round(sz[0]/2), np.round(sz[1]/2))  # approximate image centre pixel
+        sz = np.array(image.shape)  # [rows, cols]
+        matrix_c = (
+            np.round(sz[0] / 2),
+            np.round(sz[1] / 2),
+        )  # approximate image centre pixel
 
         # 1-D profiles through the centre row and centre column
-        px = image[int(matrix_c[0]), :]   # horizontal profile (varies along columns)
-        py = image[:, int(matrix_c[1])]   # vertical profile (varies along rows)
+        px = image[int(matrix_c[0]), :]  # horizontal profile (varies along columns)
+        py = image[:, int(matrix_c[1])]  # vertical profile (varies along rows)
 
         # Shift by 1 pixel so the returned coordinate sits inside the phantom edge
         offset = 1
@@ -249,21 +269,37 @@ class CatPhanGeometry:
         # Find first and last pixels exceeding the threshold in each profile.
         # These are the phantom edges; if threshold fails, fall back to 300 HU.
         try:
-            x1 = next(x for x, val in enumerate(px) if val > threshold) + offset   # left edge (col)
-            y1 = next(x for x, val in enumerate(py) if val > threshold) - offset   # top edge (row)
-            x2 = next(x for x, val in reversed(list(enumerate(px))) if val > threshold) + offset   # right edge (col)
-            y2 = next(x for x, val in reversed(list(enumerate(py))) if val > threshold) - offset   # bottom edge (row)
+            x1 = (
+                next(x for x, val in enumerate(px) if val > threshold) + offset
+            )  # left edge (col)
+            y1 = (
+                next(x for x, val in enumerate(py) if val > threshold) - offset
+            )  # top edge (row)
+            x2 = (
+                next(x for x, val in reversed(list(enumerate(px))) if val > threshold)
+                + offset
+            )  # right edge (col)
+            y2 = (
+                next(x for x, val in reversed(list(enumerate(py))) if val > threshold)
+                - offset
+            )  # bottom edge (row)
         except StopIteration:
             # Primary threshold found no crossings; retry at the lower fallback
             threshold = 300
             x1 = next(x for x, val in enumerate(px) if val > threshold) + offset
             y1 = next(x for x, val in enumerate(py) if val > threshold) - offset
-            x2 = next(x for x, val in reversed(list(enumerate(px))) if val > threshold) + offset
-            y2 = next(x for x, val in reversed(list(enumerate(py))) if val > threshold) - offset
+            x2 = (
+                next(x for x, val in reversed(list(enumerate(px))) if val > threshold)
+                + offset
+            )
+            y2 = (
+                next(x for x, val in reversed(list(enumerate(py))) if val > threshold)
+                - offset
+            )
 
         # Phantom width and height in pixels derived from the edge positions
-        szx = x2 - x1   # horizontal extent (cols)
-        szy = y2 - y1   # vertical extent (rows)
+        szx = x2 - x1  # horizontal extent (cols)
+        szy = y2 - y1  # vertical extent (rows)
 
         # Centre is the midpoint between the left/right and top/bottom edges
         center = [(x1 + x2) / 2, (y1 + y2) / 2]
@@ -273,13 +309,15 @@ class CatPhanGeometry:
         outer_r = (szx + szy) / 4
 
         # Parametric circle for the boundary overlay
-        t       = np.linspace(0, 2*np.pi, 100)   # angle parameter
+        t = np.linspace(0, 2 * np.pi, 100)  # angle parameter
         outer_x = outer_r * np.cos(t) + center[0]
         outer_y = outer_r * np.sin(t) + center[1]
         return center, [outer_x, outer_y]
 
     @staticmethod
-    def select_optimal_ctp528_slices(dicom_set: List, target_index: int, search_range: int = 2) -> Tuple[np.ndarray, np.ndarray, float]:
+    def select_optimal_ctp528_slices(
+        dicom_set: List, target_index: int, search_range: int = 2
+    ) -> Tuple[np.ndarray, np.ndarray, float]:
         """
         Select the optimal CTP528 slice image via 3-slice averaging.
 
@@ -299,46 +337,52 @@ class CatPhanGeometry:
             means : Mean profile intensity for each candidate slice.
             z_mean: Mean slice offset (relative to ``target_index``) of the averaged slices.
         """
-        z       = target_index                                    # shorthand for the target slice index
-        offsets = list(range(-search_range, search_range + 1))   # relative offsets: e.g. [-2,-1,0,1,2]
-        imgs    = [dicom_set[z + o].pixel_array for o in offsets] # raw pixel arrays for each candidate slice
-        n       = len(imgs)                                        # total number of candidate slices
+        z = target_index  # shorthand for the target slice index
+        offsets = list(
+            range(-search_range, search_range + 1)
+        )  # relative offsets: e.g. [-2,-1,0,1,2]
+        imgs = [
+            dicom_set[z + o].pixel_array for o in offsets
+        ]  # raw pixel arrays for each candidate slice
+        n = len(imgs)  # total number of candidate slices
 
         # Image geometry taken from the target slice
-        sz    = (dicom_set[z].Rows, dicom_set[z].Columns)  # image matrix size (rows, cols)
-        space = dicom_set[z].PixelSpacing                   # in-plane pixel spacing [mm/px]
-        c     = (int(sz[0] / 2), int(sz[1] / 2))           # image centre pixel (row, col)
+        sz = (dicom_set[z].Rows, dicom_set[z].Columns)  # image matrix size (rows, cols)
+        space = dicom_set[z].PixelSpacing  # in-plane pixel spacing [mm/px]
+        c = (int(sz[0] / 2), int(sz[1] / 2))  # image centre pixel (row, col)
 
         # Semicircular trace through the CTP528 line-pair region.
         # lp_r is the radius of the trace arc in mm (47 mm ≈ line-pair ring radius).
-        lp_r  = 47                                                       # trace radius [mm]
-        tfine = np.linspace(0, np.pi, 500)                               # angle samples over a semicircle
-        lp_b  = lp_r / space[0] * np.cos(tfine) + c[0]                  # x pixel coords of trace arc
-        lp_a  = lp_r / space[1] * np.sin(tfine) + c[1]                  # y pixel coords of trace arc
+        lp_r = 47  # trace radius [mm]
+        tfine = np.linspace(0, np.pi, 500)  # angle samples over a semicircle
+        lp_b = lp_r / space[0] * np.cos(tfine) + c[0]  # x pixel coords of trace arc
+        lp_a = lp_r / space[1] * np.sin(tfine) + c[1]  # y pixel coords of trace arc
 
         # Coordinate grids for interpn (scaled by pixel spacing to give physical coords)
-        x = np.linspace(0, (sz[0] - 1) / 2, sz[0])   # row coordinate axis
-        y = np.linspace(0, (sz[1] - 1) / 2, sz[1])   # col coordinate axis
+        x = np.linspace(0, (sz[0] - 1) / 2, sz[0])  # row coordinate axis
+        y = np.linspace(0, (sz[1] - 1) / 2, sz[1])  # col coordinate axis
 
         # Sample the line-pair trace profile for every candidate slice
         profiles = []
         for img in imgs:
-            f = np.zeros(len(lp_a))   # intensity profile along the trace arc
+            f = np.zeros(len(lp_a))  # intensity profile along the trace arc
             for i in range(len(lp_a)):
                 f[i] = interpn((x, y), img, [lp_a[i] * space[0], lp_b[i] * space[1]])
             profiles.append(f)
 
         # Identify the candidate slice with the highest mean trace intensity —
         # the CTP528 module has visible line-pair structure that lifts the mean
-        means = np.array([np.mean(f) for f in profiles])  # mean profile intensity per candidate slice
-        tmp   = int(np.argmax(means))                      # index of the highest-intensity candidate
+        means = np.array(
+            [np.mean(f) for f in profiles]
+        )  # mean profile intensity per candidate slice
+        tmp = int(np.argmax(means))  # index of the highest-intensity candidate
 
         # Build a selection mask for the three slices centred on the best candidate.
         # Handles edge cases where the best slice is at the boundary of the search range.
-        idx = np.zeros(n)   # 1 = include this slice in the average, 0 = exclude
+        idx = np.zeros(n)  # 1 = include this slice in the average, 0 = exclude
         try:
             idx[tmp - 1] = 1
-            idx[tmp]     = 1
+            idx[tmp] = 1
             idx[tmp + 1] = 1
         except IndexError:
             # Best slice is at the very start or end of the candidate window
@@ -353,19 +397,21 @@ class CatPhanGeometry:
                 return imgs[tmp].astype(float), means, 0.0
 
         # Accumulate the selected slices and compute the pixel-wise average
-        im         = np.zeros(sz, dtype=float)   # accumulated image sum
-        z_mean_list = []                          # offsets of the included slices (relative to target)
+        im = np.zeros(sz, dtype=float)  # accumulated image sum
+        z_mean_list = []  # offsets of the included slices (relative to target)
         for i, img in enumerate(imgs):
             if idx[i]:
                 im += np.array(img, dtype=float)
                 z_mean_list.append(offsets[i])
-        im     /= float(np.sum(idx))              # normalise to get the pixel average
-        z_mean  = float(np.mean(z_mean_list))     # mean z offset of the averaged slices
+        im /= float(np.sum(idx))  # normalise to get the pixel average
+        z_mean = float(np.mean(z_mean_list))  # mean z offset of the averaged slices
 
         return im, means, z_mean
 
     @staticmethod
-    def calculate_slice_thickness(image: np.ndarray, pixel_spacing: float, center: Tuple[float, float]) -> float:
+    def calculate_slice_thickness(
+        image: np.ndarray, pixel_spacing: float, center: Tuple[float, float]
+    ) -> float:
         """
         Measure slice thickness via FWHM of the wire-ramp profile.
 
@@ -383,24 +429,26 @@ class CatPhanGeometry:
             Slice thickness in mm.
         """
         # Unpack integer pixel coordinates of the phantom centre
-        cx, cy = np.int32(center)   # cx = column, cy = row
+        cx, cy = np.int32(center)  # cx = column, cy = row
 
         # ROI offsets relative to the phantom centre (pixels).
         # The wire ramp is positioned below and to the right of centre.
-        roit =  80   # right boundary of the ROI strip (offset from cx)
-        roib =  70   # left boundary of the ROI strip (offset from cx)
-        roil = -30   # top boundary of the ROI strip (offset from cy)
-        roir =  30   # bottom boundary of the ROI strip (offset from cy)
+        roit = 80  # right boundary of the ROI strip (offset from cx)
+        roib = 70  # left boundary of the ROI strip (offset from cx)
+        roil = -30  # top boundary of the ROI strip (offset from cy)
+        roir = 30  # bottom boundary of the ROI strip (offset from cy)
 
         # Extract the rectangular strip containing the wire ramp
-        profs = image[cy + roil:cy + roir, cx + roib:cx + roit]
+        profs = image[cy + roil : cy + roir, cx + roib : cx + roit]
 
         # Find the column within the strip that has the strongest total signal —
         # this is the column most likely aligned with the wire ramp peak
-        idx_prof = np.argmax(np.sum(profs, axis=0))   # column index of the peak-signal column
+        idx_prof = np.argmax(
+            np.sum(profs, axis=0)
+        )  # column index of the peak-signal column
 
         # Peak detection threshold: midpoint between max and min of the profile
-        h = (np.max(profs) + np.min(profs)) / 2   # amplitude threshold for find_peaks
+        h = (np.max(profs) + np.min(profs)) / 2  # amplitude threshold for find_peaks
 
         # Locate the ramp peak along the selected column profile
         peaks, _ = find_peaks(profs[:, idx_prof], height=h)
@@ -410,11 +458,15 @@ class CatPhanGeometry:
 
         # Convert FWHM from pixels to mm using the 23-degree wire-ramp angle
         # FWHM_mm = FWHM_px * pixel_spacing * sin(23°)
-        fwhm = peaks_results[0] * np.sin(np.deg2rad(23)) * pixel_spacing   # slice thickness [mm]
+        fwhm = (
+            peaks_results[0] * np.sin(np.deg2rad(23)) * pixel_spacing
+        )  # slice thickness [mm]
         return float(fwhm[0])
 
 
-def circular_roi_mask(shape: Tuple[int, int], center: Tuple[float, float], radius: float) -> np.ndarray:
+def circular_roi_mask(
+    shape: Tuple[int, int], center: Tuple[float, float], radius: float
+) -> np.ndarray:
     """
     Create a boolean mask for a circular ROI.
 
@@ -430,14 +482,20 @@ def circular_roi_mask(shape: Tuple[int, int], center: Tuple[float, float], radiu
     ny, nx = shape
     # Build a meshgrid of pixel coordinates — Y varies along rows, X along columns
     Y, X = np.ogrid[:ny, :nx]
-    cx, cy = center   # circle centre: cx = column, cy = row
+    cx, cy = center  # circle centre: cx = column, cy = row
     # Euclidean distance from every pixel to the circle centre
     dist = np.sqrt((X - cx) ** 2 + (Y - cy) ** 2)
     # True inside the circle, False outside
     return dist <= radius
 
 
-def compute_phantom_boundary(image: np.ndarray, center: Tuple[float, float], pixel_spacing: Optional[float] = None, threshold: float = -900, fallback_threshold: float = -900) -> Tuple[Tuple[float, float], Tuple[np.ndarray, np.ndarray]]:
+def compute_phantom_boundary(
+    image: np.ndarray,
+    center: Tuple[float, float],
+    pixel_spacing: Optional[float] = None,
+    threshold: float = -900,
+    fallback_threshold: float = -900,
+) -> Tuple[Tuple[float, float], Tuple[np.ndarray, np.ndarray]]:
     """
     Estimate the circular phantom boundary from a CT image.
 
@@ -464,45 +522,61 @@ def compute_phantom_boundary(image: np.ndarray, center: Tuple[float, float], pix
         return ((0, 0), (np.array([]), np.array([])))
 
     # Clamp the centre coordinates to valid pixel indices
-    center_row = int(round(center[1]))   # row index corresponding to the y coordinate
-    center_col = int(round(center[0]))   # col index corresponding to the x coordinate
+    center_row = int(round(center[1]))  # row index corresponding to the y coordinate
+    center_col = int(round(center[0]))  # col index corresponding to the x coordinate
     center_row = max(0, min(center_row, image.shape[0] - 1))
     center_col = max(0, min(center_col, image.shape[1] - 1))
 
     # 1-D profiles through the clamped centre pixel
-    px = image[center_row, :]   # horizontal profile (varies along columns)
-    py = image[:, center_col]   # vertical profile (varies along rows)
+    px = image[center_row, :]  # horizontal profile (varies along columns)
+    py = image[:, center_col]  # vertical profile (varies along rows)
 
     # Shift by 1 pixel so the returned coordinate sits inside the phantom edge
     offset = 1
 
     # Find first and last pixels exceeding the threshold in each profile
     try:
-        x1 = next(x for x, val in enumerate(px) if val > threshold) + offset   # left edge (col)
-        y1 = next(x for x, val in enumerate(py) if val > threshold) - offset   # top edge (row)
-        x2 = next(x for x, val in reversed(list(enumerate(px))) if val > threshold) + offset   # right edge (col)
-        y2 = next(x for x, val in reversed(list(enumerate(py))) if val > threshold) - offset   # bottom edge (row)
+        x1 = (
+            next(x for x, val in enumerate(px) if val > threshold) + offset
+        )  # left edge (col)
+        y1 = (
+            next(x for x, val in enumerate(py) if val > threshold) - offset
+        )  # top edge (row)
+        x2 = (
+            next(x for x, val in reversed(list(enumerate(px))) if val > threshold)
+            + offset
+        )  # right edge (col)
+        y2 = (
+            next(x for x, val in reversed(list(enumerate(py))) if val > threshold)
+            - offset
+        )  # bottom edge (row)
     except StopIteration:
         # Primary threshold yielded no crossings; try the fallback threshold
         try:
             threshold = fallback_threshold
             x1 = next(x for x, val in enumerate(px) if val > threshold) + offset
             y1 = next(x for x, val in enumerate(py) if val > threshold) - offset
-            x2 = next(x for x, val in reversed(list(enumerate(px))) if val > threshold) + offset
-            y2 = next(x for x, val in reversed(list(enumerate(py))) if val > threshold) - offset
+            x2 = (
+                next(x for x, val in reversed(list(enumerate(px))) if val > threshold)
+                + offset
+            )
+            y2 = (
+                next(x for x, val in reversed(list(enumerate(py))) if val > threshold)
+                - offset
+            )
         except StopIteration:
             # Both thresholds failed; use a fixed 100 mm radius if pixel spacing is known
             if pixel_spacing:
-                radius_px = 100.0 / pixel_spacing   # 100 mm phantom radius in pixels
-                t       = np.linspace(0, 2*np.pi, 100)
+                radius_px = 100.0 / pixel_spacing  # 100 mm phantom radius in pixels
+                t = np.linspace(0, 2 * np.pi, 100)
                 outer_x = radius_px * np.cos(t) + center[0]
                 outer_y = radius_px * np.sin(t) + center[1]
                 return (center, (outer_x, outer_y))
             return ((0, 0), (np.array([]), np.array([])))
 
     # Phantom extents from the detected edges
-    szx = x2 - x1   # horizontal extent in pixels
-    szy = y2 - y1   # vertical extent in pixels
+    szx = x2 - x1  # horizontal extent in pixels
+    szy = y2 - y1  # vertical extent in pixels
 
     # Centre is the midpoint between the left/right and top/bottom edges
     detected_center = ((x1 + x2) / 2, (y1 + y2) / 2)
@@ -511,13 +585,18 @@ def compute_phantom_boundary(image: np.ndarray, center: Tuple[float, float], pix
     outer_r = (szx + szy) / 4
 
     # Parametric circle for the boundary overlay
-    t       = np.linspace(0, 2*np.pi, 100)   # angle parameter
+    t = np.linspace(0, 2 * np.pi, 100)  # angle parameter
     outer_x = outer_r * np.cos(t) + detected_center[0]
     outer_y = outer_r * np.sin(t) + detected_center[1]
     return (detected_center, (outer_x, outer_y))
 
 
-def draw_boundary(center: Tuple[float, float], diameter_x_px: Optional[float], diameter_y_px: Optional[float], n_points: int = 100) -> Tuple[np.ndarray, np.ndarray]:
+def draw_boundary(
+    center: Tuple[float, float],
+    diameter_x_px: Optional[float],
+    diameter_y_px: Optional[float],
+    n_points: int = 100,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Compute the perimeter points of an elliptical phantom boundary.
 
@@ -534,15 +613,20 @@ def draw_boundary(center: Tuple[float, float], diameter_x_px: Optional[float], d
     # Return empty arrays immediately if either diameter is missing
     if diameter_x_px is None or diameter_y_px is None:
         return np.array([]), np.array([])
-    rx = diameter_x_px / 2   # horizontal semi-axis in pixels
-    ry = diameter_y_px / 2   # vertical semi-axis in pixels
-    t        = np.linspace(0, 2 * np.pi, n_points)   # angle parameter
-    x_coords = rx * np.cos(t) + center[0]             # x perimeter coords
-    y_coords = ry * np.sin(t) + center[1]             # y perimeter coords
+    rx = diameter_x_px / 2  # horizontal semi-axis in pixels
+    ry = diameter_y_px / 2  # vertical semi-axis in pixels
+    t = np.linspace(0, 2 * np.pi, n_points)  # angle parameter
+    x_coords = rx * np.cos(t) + center[0]  # x perimeter coords
+    y_coords = ry * np.sin(t) + center[1]  # y perimeter coords
     return x_coords, y_coords
 
 
-def find_center_edge_detection(img: np.ndarray, threshold: float = -900, fallback_threshold: float = -900, return_diameters: bool = False):
+def find_center_edge_detection(
+    img: np.ndarray,
+    threshold: float = -900,
+    fallback_threshold: float = -900,
+    return_diameters: bool = False,
+):
     """
     Find the phantom centre using threshold crossings along the image midlines.
 
@@ -564,30 +648,49 @@ def find_center_edge_detection(img: np.ndarray, threshold: float = -900, fallbac
         Diameter values are ``None`` if detection failed entirely.
     """
     # Image dimensions and midpoint pixel
-    sz       = np.array(img.shape)                                    # [rows, cols]
-    matrix_c = (int(np.round(sz[0]/2)), int(np.round(sz[1]/2)))      # centre pixel (row, col)
+    sz = np.array(img.shape)  # [rows, cols]
+    matrix_c = (
+        int(np.round(sz[0] / 2)),
+        int(np.round(sz[1] / 2)),
+    )  # centre pixel (row, col)
 
     # 1-D profiles through the centre row and centre column
-    px = img[matrix_c[0], :]   # horizontal profile (varies along columns)
-    py = img[:, matrix_c[1]]   # vertical profile (varies along rows)
+    px = img[matrix_c[0], :]  # horizontal profile (varies along columns)
+    py = img[:, matrix_c[1]]  # vertical profile (varies along rows)
 
     # Shift by 1 pixel so detected coordinates sit inside the phantom edge
     offset = 1
 
     # Find first and last pixels exceeding the threshold in each profile
     try:
-        x1 = next(x for x, val in enumerate(px) if val > threshold) + offset   # left edge (col)
-        y1 = next(x for x, val in enumerate(py) if val > threshold) - offset   # top edge (row)
-        x2 = next(x for x, val in reversed(list(enumerate(px))) if val > threshold) + offset   # right edge (col)
-        y2 = next(x for x, val in reversed(list(enumerate(py))) if val > threshold) - offset   # bottom edge (row)
+        x1 = (
+            next(x for x, val in enumerate(px) if val > threshold) + offset
+        )  # left edge (col)
+        y1 = (
+            next(x for x, val in enumerate(py) if val > threshold) - offset
+        )  # top edge (row)
+        x2 = (
+            next(x for x, val in reversed(list(enumerate(px))) if val > threshold)
+            + offset
+        )  # right edge (col)
+        y2 = (
+            next(x for x, val in reversed(list(enumerate(py))) if val > threshold)
+            - offset
+        )  # bottom edge (row)
     except StopIteration:
         # Primary threshold failed; retry with the fallback
         threshold = fallback_threshold
         try:
             x1 = next(x for x, val in enumerate(px) if val > threshold) + offset
             y1 = next(x for x, val in enumerate(py) if val > threshold) - offset
-            x2 = next(x for x, val in reversed(list(enumerate(px))) if val > threshold) + offset
-            y2 = next(x for x, val in reversed(list(enumerate(py))) if val > threshold) - offset
+            x2 = (
+                next(x for x, val in reversed(list(enumerate(px))) if val > threshold)
+                + offset
+            )
+            y2 = (
+                next(x for x, val in reversed(list(enumerate(py))) if val > threshold)
+                - offset
+            )
         except StopIteration:
             # Both thresholds failed — return the geometric image centre
             if return_diameters:
@@ -595,18 +698,30 @@ def find_center_edge_detection(img: np.ndarray, threshold: float = -900, fallbac
             return matrix_c[0], matrix_c[1]
 
     # Centre is the midpoint of the detected left/right and top/bottom edges
-    center_col = (x1 + x2) / 2.0   # column coordinate of the phantom centre
-    center_row = (y1 + y2) / 2.0   # row coordinate of the phantom centre
+    center_col = (x1 + x2) / 2.0  # column coordinate of the phantom centre
+    center_row = (y1 + y2) / 2.0  # row coordinate of the phantom centre
 
     if return_diameters:
         # Physical diameter of the phantom in both axes (pixels)
-        diameter_x = float(x2 - x1)   # horizontal diameter [px]
-        diameter_y = float(y2 - y1)   # vertical diameter [px]
+        diameter_x = float(x2 - x1)  # horizontal diameter [px]
+        diameter_y = float(y2 - y1)  # vertical diameter [px]
         return center_row, center_col, diameter_y, diameter_x
     return center_row, center_col
 
 
-def find_rotation(image: np.ndarray, center: Optional[Tuple[float, float]], pixel_spacing: Union[float, Tuple[float, float], List[float]], insert_radius_mm: float = 58.5, edge_threshold: float = 100.0, center_threshold: float = 30, iterations: int = 5, profile_length: int = 25, granularity: int = 4, interp_kwargs: Optional[dict] = None, initial_angle_deg: float = 0.0):
+def find_rotation(
+    image: np.ndarray,
+    center: Optional[Tuple[float, float]],
+    pixel_spacing: Union[float, Tuple[float, float], List[float]],
+    insert_radius_mm: float = 58.5,
+    edge_threshold: float = 100.0,
+    center_threshold: float = 30,
+    iterations: int = 5,
+    profile_length: int = 25,
+    granularity: int = 4,
+    interp_kwargs: Optional[dict] = None,
+    initial_angle_deg: float = 0.0,
+):
     """
     Detect phantom rotation by locating the top and bottom air/insert positions.
 
@@ -649,40 +764,44 @@ def find_rotation(image: np.ndarray, center: Optional[Tuple[float, float]], pixe
     """
     # Use a mutable default for interp_kwargs rather than a mutable default argument
     if interp_kwargs is None:
-        interp_kwargs = {'bounds_error': False, 'fill_value': 0}
+        interp_kwargs = {"bounds_error": False, "fill_value": 0}
 
     # Accept pixel spacing as a scalar or as the first element of a DICOM sequence
     if isinstance(pixel_spacing, (list, tuple, np.ndarray)):
-        space = float(pixel_spacing[0])   # [mm/px]
+        space = float(pixel_spacing[0])  # [mm/px]
     else:
-        space = float(pixel_spacing)      # [mm/px]
+        space = float(pixel_spacing)  # [mm/px]
 
     # Auto-detect the phantom centre if one was not supplied
     if center is None:
         try:
             r_row, r_col = find_center_edge_detection(image)
-            center = (float(r_col), float(r_row))   # (x, y) = (col, row)
+            center = (float(r_col), float(r_row))  # (x, y) = (col, row)
         except Exception:
             raise ValueError("Center must be provided or detectable via edge detection")
 
     # Image dimensions needed to build the coordinate grids
-    h_img, w_img = image.shape[:2]   # (rows, cols)
+    h_img, w_img = image.shape[:2]  # (rows, cols)
 
     # Insert ring radius converted from mm to pixels
-    ring_r = insert_radius_mm / space   # [px]
+    ring_r = insert_radius_mm / space  # [px]
 
     # Seed positions on the insert ring at 270° (top) and 90° (bottom).
     # Image y increases downward, so 90° points down and 270° points up.
-    _p90  = (ring_r * np.cos(np.radians(90  + initial_angle_deg)) + center[0],
-             ring_r * np.sin(np.radians(90  + initial_angle_deg)) + center[1])   # bottom insert seed (x, y)
-    _p270 = (ring_r * np.cos(np.radians(270 + initial_angle_deg)) + center[0],
-             ring_r * np.sin(np.radians(270 + initial_angle_deg)) + center[1])   # top insert seed (x, y)
-    ct = _p270   # current estimate of the top insert position
-    cb = _p90    # current estimate of the bottom insert position
+    _p90 = (
+        ring_r * np.cos(np.radians(90 + initial_angle_deg)) + center[0],
+        ring_r * np.sin(np.radians(90 + initial_angle_deg)) + center[1],
+    )  # bottom insert seed (x, y)
+    _p270 = (
+        ring_r * np.cos(np.radians(270 + initial_angle_deg)) + center[0],
+        ring_r * np.sin(np.radians(270 + initial_angle_deg)) + center[1],
+    )  # top insert seed (x, y)
+    ct = _p270  # current estimate of the top insert position
+    cb = _p90  # current estimate of the bottom insert position
 
     # Coordinate grids for interpn — row indices [0..h-1], col indices [0..w-1]
-    x = np.linspace(0, h_img - 1, h_img)   # row axis
-    y = np.linspace(0, w_img - 1, w_img)   # col axis
+    x = np.linspace(0, h_img - 1, h_img)  # row axis
+    y = np.linspace(0, w_img - 1, w_img)  # col axis
 
     def _find_insert_center(roi_pos):
         """Refine an insert centre estimate using edge detection on local profiles.
@@ -694,48 +813,71 @@ def find_rotation(image: np.ndarray, center: Optional[Tuple[float, float]], pixe
         Returns ``roi_pos`` unchanged if fewer than two edges are found.
         """
         # Sub-pixel sample positions spanning ±profile_length pixels around the current estimate
-        x_horiz = np.linspace(roi_pos[0] - profile_length, roi_pos[0] + profile_length, profile_length * granularity)  # col coords of horizontal profile
-        x_vert  = np.linspace(roi_pos[1] - profile_length, roi_pos[1] + profile_length, profile_length * granularity)  # row coords of vertical profile
+        x_horiz = np.linspace(
+            roi_pos[0] - profile_length,
+            roi_pos[0] + profile_length,
+            profile_length * granularity,
+        )  # col coords of horizontal profile
+        x_vert = np.linspace(
+            roi_pos[1] - profile_length,
+            roi_pos[1] + profile_length,
+            profile_length * granularity,
+        )  # row coords of vertical profile
 
         # Sample image intensities along the horizontal profile (fixed row = roi_pos[1])
         # and the vertical profile (fixed col = roi_pos[0])
-        prof_h = np.zeros(len(x_horiz))   # intensity values along the horizontal profile
-        prof_v = np.zeros(len(x_vert))    # intensity values along the vertical profile
+        prof_h = np.zeros(len(x_horiz))  # intensity values along the horizontal profile
+        prof_v = np.zeros(len(x_vert))  # intensity values along the vertical profile
         for i in range(len(x_horiz)):
-               prof_h[i] = interpn((x, y), image, [[roi_pos[1], x_horiz[i]]], **interp_kwargs)[0]
+            prof_h[i] = interpn(
+                (x, y), image, [[roi_pos[1], x_horiz[i]]], **interp_kwargs
+            )[0]
         for i in range(len(x_vert)):
-               prof_v[i] = interpn((x, y), image, [[x_vert[i], roi_pos[0]]], **interp_kwargs)[0]
+            prof_v[i] = interpn(
+                (x, y), image, [[x_vert[i], roi_pos[0]]], **interp_kwargs
+            )[0]
 
         # Discrete first derivative — peaks in |dh| and |dv| correspond to insert edges
-        dh = np.diff(prof_h)   # derivative of the horizontal profile
-        dv = np.diff(prof_v)   # derivative of the vertical profile
-        peaks_h, _ = find_peaks(np.abs(dh), height=edge_threshold)   # edge indices along horizontal profile
-        peaks_v, _ = find_peaks(np.abs(dv), height=edge_threshold)   # edge indices along vertical profile
+        dh = np.diff(prof_h)  # derivative of the horizontal profile
+        dv = np.diff(prof_v)  # derivative of the vertical profile
+        peaks_h, _ = find_peaks(
+            np.abs(dh), height=edge_threshold
+        )  # edge indices along horizontal profile
+        peaks_v, _ = find_peaks(
+            np.abs(dv), height=edge_threshold
+        )  # edge indices along vertical profile
 
         if len(peaks_h) >= 2 and len(peaks_v) >= 2:
             # Convert derivative peak indices back to pixel coordinates.
             # A peak at index i in dh lies between x_horiz[i] and x_horiz[i+1],
             # so the edge position in pixel coordinates is x_horiz[0] + (i + 0.5) * step.
-            step_h = x_horiz[1] - x_horiz[0]   # pixel spacing between horizontal samples
-            step_v = x_vert[1]  - x_vert[0]    # pixel spacing between vertical samples
+            step_h = x_horiz[1] - x_horiz[0]  # pixel spacing between horizontal samples
+            step_v = x_vert[1] - x_vert[0]  # pixel spacing between vertical samples
             # Offset of the insert centre from roi_pos, in pixel coordinates
-            mid_h = np.mean(x_horiz[0] + (peaks_h + 0.5) * step_h) - roi_pos[0]   # horizontal offset [px]
-            mid_v = np.mean(x_vert[0]  + (peaks_v + 0.5) * step_v) - roi_pos[1]   # vertical offset [px]
+            mid_h = (
+                np.mean(x_horiz[0] + (peaks_h + 0.5) * step_h) - roi_pos[0]
+            )  # horizontal offset [px]
+            mid_v = (
+                np.mean(x_vert[0] + (peaks_v + 0.5) * step_v) - roi_pos[1]
+            )  # vertical offset [px]
             return (roi_pos[0] + mid_h, roi_pos[1] + mid_v)
 
         # Fewer than two edges found — return the current estimate unchanged
         return roi_pos
+
     # Store original seed positions so they can be restored if refinement diverges
-    ct_orig = ct   # original top insert seed
-    cb_orig = cb   # original bottom insert seed
-    ct_old  = ct   # top insert from the previous iteration (used for the shift sanity check)
-    cb_old  = cb   # bottom insert from the previous iteration
+    ct_orig = ct  # original top insert seed
+    cb_orig = cb  # original bottom insert seed
+    ct_old = (
+        ct  # top insert from the previous iteration (used for the shift sanity check)
+    )
+    cb_old = cb  # bottom insert from the previous iteration
 
     # Iterative refinement: repeatedly re-centre the insert estimate
     for _ in range(iterations):
         try:
-            ct_new = _find_insert_center(ct)   # refined top insert position
-            cb_new = _find_insert_center(cb)   # refined bottom insert position
+            ct_new = _find_insert_center(ct)  # refined top insert position
+            cb_new = _find_insert_center(cb)  # refined bottom insert position
         except Exception:
             # Interpolation error (e.g. point outside image bounds) — restore seeds and stop
             ct, cb = ct_orig, cb_orig
@@ -743,10 +885,12 @@ def find_rotation(image: np.ndarray, center: Optional[Tuple[float, float]], pixe
 
         # Sanity check: if either point jumped more than center_threshold pixels in any
         # direction, the edge detection probably failed; restore seeds and stop
-        if (abs(ct_new[0] - ct_old[0]) > center_threshold or
-                abs(ct_new[1] - ct_old[1]) > center_threshold or
-                abs(cb_new[0] - cb_old[0]) > center_threshold or
-                abs(cb_new[1] - cb_old[1]) > center_threshold):
+        if (
+            abs(ct_new[0] - ct_old[0]) > center_threshold
+            or abs(ct_new[1] - ct_old[1]) > center_threshold
+            or abs(cb_new[0] - cb_old[0]) > center_threshold
+            or abs(cb_new[1] - cb_old[1]) > center_threshold
+        ):
             ct, cb = ct_orig, cb_orig
             break
 
@@ -755,12 +899,18 @@ def find_rotation(image: np.ndarray, center: Optional[Tuple[float, float]], pixe
         ct, cb = ct_new, cb_new
 
     # Vector pointing from the bottom insert to the top insert
-    tx = ct[0] - cb[0]   # horizontal component (positive = top is to the right)
-    ty = ct[1] - cb[1]   # vertical component (positive = top is below, because y increases downward)
+    tx = ct[0] - cb[0]  # horizontal component (positive = top is to the right)
+    ty = (
+        ct[1] - cb[1]
+    )  # vertical component (positive = top is below, because y increases downward)
 
     # arctan2(-ty, tx) gives the bearing of the vector in standard math orientation
     # (y-axis pointing up).  Subtracting 90° converts from "angle from east" to
     # "angle from north" (i.e. rotation away from the vertical axis).
-    rotation_angle  = np.degrees(np.arctan2(-ty, tx))   # bearing of the top-bottom vector [deg]
-    rotation_from_y = float(rotation_angle) - 90.0       # rotation relative to vertical [deg]
+    rotation_angle = np.degrees(
+        np.arctan2(-ty, tx)
+    )  # bearing of the top-bottom vector [deg]
+    rotation_from_y = (
+        float(rotation_angle) - 90.0
+    )  # rotation relative to vertical [deg]
     return rotation_from_y, ct, cb
