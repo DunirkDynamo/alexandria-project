@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>alexandria.analyzers.high_contrast &mdash; alexandria 0.3.2.post0 documentation</title>
+  <title>alexandria.analyzers.high_contrast &mdash; alexandria 0.4.0.post0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=da15191b"></script>
+      <script src="../../../_static/documentation_options.js?v=538ed087"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -79,10 +79,11 @@
 <span class="sd">line pair module with both single-image and DICOM-series modes.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">interpn</span><span class="p">,</span> <span class="n">interp1d</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">interp1d</span><span class="p">,</span> <span class="n">interpn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
 
 
 <div class="viewcode-block" id="HighContrastAnalyzer">
@@ -117,9 +118,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span>             <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">pixel_spacing</span><span class="p">)</span> <span class="k">if</span> <span class="n">pixel_spacing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">center</span>                    <span class="o">=</span> <span class="n">center</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span>          <span class="o">=</span> <span class="n">center_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">pixel_spacing</span><span class="p">)</span> <span class="k">if</span> <span class="n">pixel_spacing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">center</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span> <span class="o">=</span> <span class="n">center_threshold</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span> <span class="o">=</span> <span class="n">center_threshold_fallback</span>
 
         <span class="k">if</span> <span class="n">rotation_offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -137,8 +138,21 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">center_x</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">center_y</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">62</span><span class="p">,</span> <span class="mi">85</span><span class="p">,</span> <span class="mi">103</span><span class="p">,</span> <span class="mi">121</span><span class="p">,</span> <span class="mi">140</span><span class="p">,</span> <span class="mi">157</span><span class="p">,</span> <span class="mi">173</span><span class="p">,</span> <span class="mi">186</span><span class="p">])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_offset_deg</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">npeaks</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_deg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">62</span><span class="p">,</span> <span class="mi">85</span><span class="p">,</span> <span class="mi">103</span><span class="p">,</span> <span class="mi">121</span><span class="p">,</span> <span class="mi">140</span><span class="p">,</span> <span class="mi">157</span><span class="p">,</span> <span class="mi">173</span><span class="p">,</span> <span class="mi">186</span><span class="p">])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_offset_deg</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npeaks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+        <span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">lpx</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lpy</span> <span class="o">=</span> <span class="kc">None</span>
@@ -186,11 +200,15 @@
                     <span class="n">im2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
                     <span class="n">im3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pixel_array</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">averaged_image</span> <span class="o">=</span> <span class="p">(</span><span class="n">im1</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im2</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im3</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span> <span class="o">/</span> <span class="mi">3</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">averaged_image</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">im1</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im2</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">im3</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+                <span class="p">)</span> <span class="o">/</span> <span class="mi">3</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">averaged_image</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">slice_index</span><span class="p">]</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dicom_set</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">slice_index</span><span class="p">]</span><span class="o">.</span><span class="n">PixelSpacing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">center_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -214,7 +232,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">lpx</span> <span class="o">=</span> <span class="n">r_pixels</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">thetas_rad</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_x</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lpy</span> <span class="o">=</span> <span class="n">r_pixels</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">thetas_rad</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_y</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_MTF_for_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_coords</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">y_coords</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">npeaks_expected</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_MTF_for_pair</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x_coords</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+        <span class="n">y_coords</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+        <span class="n">npeaks_expected</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="p">):</span>
         <span class="n">x1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_coords</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_per_segment</span><span class="p">)</span>
         <span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_coords</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_per_segment</span><span class="p">)</span>
         <span class="n">f1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x1</span><span class="p">))</span>
@@ -224,7 +247,14 @@
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x1</span><span class="p">)):</span>
-            <span class="n">f1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interpn</span><span class="p">((</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span> <span class="p">[[</span><span class="n">y1</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x1</span><span class="p">[</span><span class="n">i</span><span class="p">]]],</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">f1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interpn</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
+                <span class="p">[[</span><span class="n">y1</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x1</span><span class="p">[</span><span class="n">i</span><span class="p">]]],</span>
+                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+                <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">fill_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">df1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span>
 
@@ -232,9 +262,19 @@
         <span class="n">peaks_max1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
         <span class="n">peaks_min1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="o">-</span><span class="n">df1</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
 
-        <span class="k">while</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">peaks_max1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">npeaks_expected</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">peaks_min1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">npeaks_expected</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="k">while</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">peaks_max1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">npeaks_expected</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">peaks_min1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">npeaks_expected</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
             <span class="k">if</span> <span class="n">h</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">:</span>
-                <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">peaks_max1</span><span class="p">,</span> <span class="n">peaks_min1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span> <span class="n">x_coords</span><span class="p">,</span> <span class="n">y_coords</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="mf">0.0</span><span class="p">,</span>
+                    <span class="n">f1</span><span class="p">,</span>
+                    <span class="n">peaks_max1</span><span class="p">,</span>
+                    <span class="n">peaks_min1</span><span class="p">,</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
+                    <span class="n">x_coords</span><span class="p">,</span>
+                    <span class="n">y_coords</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="n">h</span> <span class="o">-=</span> <span class="mi">1</span>
             <span class="n">peaks_max1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
             <span class="n">peaks_min1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="o">-</span><span class="n">df1</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">h</span><span class="p">)</span>
@@ -250,12 +290,16 @@
 
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">peaks1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">k</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">tmp_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f1</span><span class="p">[</span><span class="n">peaks1</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">:</span><span class="n">peaks1</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">])</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+                <span class="n">tmp_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="n">f1</span><span class="p">[</span><span class="n">peaks1</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span> <span class="p">:</span> <span class="n">peaks1</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
                 <span class="n">idx_at</span> <span class="o">=</span> <span class="n">tmp_idx</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">peaks1</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                 <span class="n">idxmax</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx_at</span><span class="p">)</span>
                 <span class="n">Imax</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f1</span><span class="p">[</span><span class="n">idx_at</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">tmp_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f1</span><span class="p">[</span><span class="n">peaks1</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">:</span><span class="n">peaks1</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">])</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+                <span class="n">tmp_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="n">f1</span><span class="p">[</span><span class="n">peaks1</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span> <span class="p">:</span> <span class="n">peaks1</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
                 <span class="n">idx_at</span> <span class="o">=</span> <span class="n">tmp_idx</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">peaks1</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                 <span class="n">idxmin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx_at</span><span class="p">)</span>
                 <span class="n">Imin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f1</span><span class="p">[</span><span class="n">idx_at</span><span class="p">])</span>
@@ -263,7 +307,9 @@
         <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Imax</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Imin</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
             <span class="n">MTF_value</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">MTF_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imax</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imin</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imax</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imin</span><span class="p">))</span>
+            <span class="n">MTF_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imax</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imin</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imax</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Imin</span><span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">MTF_value</span><span class="p">),</span> <span class="n">f1</span><span class="p">,</span> <span class="n">peaks_max1</span><span class="p">,</span> <span class="n">peaks_min1</span><span class="p">,</span> <span class="n">peaks1</span><span class="p">,</span> <span class="n">x_coords</span><span class="p">,</span> <span class="n">y_coords</span>
 
@@ -271,7 +317,12 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute and set the phantom boundary using the same logic as other modules.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_center_edge_detection</span><span class="p">,</span> <span class="n">compute_phantom_boundary</span><span class="p">,</span> <span class="n">draw_boundary</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">alexandria.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">compute_phantom_boundary</span><span class="p">,</span>
+            <span class="n">draw_boundary</span><span class="p">,</span>
+            <span class="n">find_center_edge_detection</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="n">diameter_x</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">diameter_y</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -279,7 +330,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
                 <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span><span class="p">,</span>
                 <span class="n">fallback_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span><span class="p">,</span>
-                <span class="n">return_diameters</span><span class="o">=</span><span class="kc">True</span>
+                <span class="n">return_diameters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="p">(</span><span class="n">center_col</span><span class="p">,</span> <span class="n">center_row</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">center_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -291,11 +342,11 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">pixel_spacing</span><span class="p">,</span>
                 <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold</span><span class="p">,</span>
-                <span class="n">fallback_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span>
+                <span class="n">fallback_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_threshold_fallback</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">boundary</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">boundary_x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[],</span>
-            <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="n">boundary_y</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_y</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">boundary_x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[],</span>
+            <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">boundary_y</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundary_y</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[],</span>
         <span class="p">}</span>
 
 <div class="viewcode-block" id="HighContrastAnalyzer.analyze">
@@ -310,12 +361,12 @@
 
         <span class="n">n_pairs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lpx</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="n">per_pair_mtf</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">profiles</span>     <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">pmax_list</span>    <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">pmin_list</span>    <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">pcomb_list</span>   <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">lp_x_list</span>    <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">lp_y_list</span>    <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">profiles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">pmax_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">pmin_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">pcomb_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lp_x_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lp_y_list</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_pairs</span><span class="p">):</span>
             <span class="n">npeaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">npeaks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -350,7 +401,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">nMTF</span> <span class="o">=</span> <span class="n">mtf_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_pair_mtf</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lp_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_pair_mtf</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_pair_mtf</span><span class="p">))</span> <span class="o">/</span> <span class="mf">10.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lp_axis</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_pair_mtf</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_pair_mtf</span><span class="p">))</span> <span class="o">/</span> <span class="mf">10.0</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lp_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
 
@@ -365,21 +418,31 @@
                     <span class="s2">&quot;MTF10&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">fMTF</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
                 <span class="p">}</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MTF80&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;MTF50&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;MTF30&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;MTF10&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;MTF80&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                    <span class="s2">&quot;MTF50&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                    <span class="s2">&quot;MTF30&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                    <span class="s2">&quot;MTF10&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                <span class="p">}</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MTF80&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;MTF50&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;MTF30&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="s2">&quot;MTF10&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;MTF80&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                <span class="s2">&quot;MTF50&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                <span class="s2">&quot;MTF30&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                <span class="s2">&quot;MTF10&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;mtf_80&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF80&quot;</span><span class="p">],</span>
-            <span class="s1">&#39;mtf_50&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF50&quot;</span><span class="p">],</span>
-            <span class="s1">&#39;mtf_30&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF30&quot;</span><span class="p">],</span>
-            <span class="s1">&#39;mtf_10&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF10&quot;</span><span class="p">],</span>
-            <span class="s1">&#39;mtf_array&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nMTF</span><span class="p">,</span>
-            <span class="s1">&#39;lp_frequencies&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lp_axis</span><span class="p">,</span>
-            <span class="s1">&#39;line_pair_x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lpx</span><span class="p">,</span>
-            <span class="s1">&#39;line_pair_y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lpy</span>
+            <span class="s2">&quot;mtf_80&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF80&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;mtf_50&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF50&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;mtf_30&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF30&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;mtf_10&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtf_points</span><span class="p">[</span><span class="s2">&quot;MTF10&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;mtf_array&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nMTF</span><span class="p">,</span>
+            <span class="s2">&quot;lp_frequencies&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lp_axis</span><span class="p">,</span>
+            <span class="s2">&quot;line_pair_x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lpx</span><span class="p">,</span>
+            <span class="s2">&quot;line_pair_y&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lpy</span><span class="p">,</span>
         <span class="p">}</span>
-        
+
         <span class="bp">self</span><span class="o">.</span><span class="n">mtf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nMTF</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lp_frequencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lp_axis</span>
 
