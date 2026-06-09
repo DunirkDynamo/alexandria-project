@@ -5,8 +5,6 @@ Creates comprehensive visualization plots for 4-ROI linearity analysis results.
 Displays main image with ROI circles, per-ROI histograms, and 2D heatmaps.
 """
 
-from typing import Optional
-
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -107,7 +105,6 @@ class CTP401Plotter:
                 ax_heat.axis("off")
                 continue
 
-            angle_deg = self.roi_angles[material]
             color = self.roi_colors.get(material, "white")
             display_name = self.roi_display_names[material]
 

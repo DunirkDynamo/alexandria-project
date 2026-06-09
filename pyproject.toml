@@ -61,5 +61,15 @@ include = "\\.pyi?$"
 [tool.isort]
 profile = "black"
 line_length = 88
+skip = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "alexandria_env",
+    "build",
+    "dist",
+    "docs/_build",
+]
 
 

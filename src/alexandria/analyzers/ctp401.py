@@ -16,9 +16,6 @@ Provides comprehensive analysis including:
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from scipy import ndimage
-from scipy.interpolate import interpn
-from scipy.signal import find_peaks
 
 
 class CTP401Analyzer:

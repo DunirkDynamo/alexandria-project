@@ -287,7 +287,6 @@ class DetailedUniformityPlotter:
         cross_colors = plt.cm.tab10(np.linspace(0, 1, n_cross))
         profile_len = 400
         half_len = profile_len // 2
-        pixel_spacing = float(getattr(self.analyzer, "pixel_spacing", 1.0))
 
         cross_profiles = []
         dists = np.arange(-half_len, half_len, 1)

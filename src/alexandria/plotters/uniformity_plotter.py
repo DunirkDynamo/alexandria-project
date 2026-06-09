@@ -4,8 +4,6 @@ Uniformity Plotter
 Creates comprehensive visualization plots for uniformity analysis results.
 """
 
-from typing import Optional
-
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -187,7 +185,9 @@ class UniformityPlotter:
         ax_box.boxplot(roi_datas, labels=labels, patch_artist=True)
         ax_box.set_title("ROI Boxplots")
         ax_box.set_ylabel("HU")
-        for patch, color in zip(ax_box.patches, [roi_colors[l] for l in labels]):
+        for patch, color in zip(
+            ax_box.patches, [roi_colors[roi_label] for roi_label in labels]
+        ):
             patch.set_facecolor(color)
             patch.set_alpha(0.7)
 

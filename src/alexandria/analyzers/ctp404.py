@@ -8,7 +8,6 @@ from catphan404 and XVI-CatPhan implementations.
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from scipy import ndimage
 
 
 class CTP404Analyzer:

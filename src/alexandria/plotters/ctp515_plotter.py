@@ -5,8 +5,6 @@ Creates comprehensive visualization plots for low-contrast detectability analysi
 Displays image with color-coded ROIs, dual-axis CNR/Contrast plots, and statistics table.
 """
 
-from typing import Optional
-
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np

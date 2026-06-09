@@ -9,7 +9,7 @@ line pair module with both single-image and DICOM-series modes.
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from scipy.interpolate import interp1d, interpn
+from scipy.interpolate import interpn
 from scipy.signal import find_peaks
 
 

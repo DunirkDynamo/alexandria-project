@@ -1,6 +1,5 @@
 import os
 import sys
-from importlib import metadata
 
 # Ensure the package directory is importable by Sphinx (src layout)
 # From docs/source -> go up two to project root and into src/

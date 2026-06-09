@@ -186,7 +186,7 @@ class CTP404Plotter:
                 ax_hist.text(0.5, 0.5, "no data", ha="center", va="center")
 
             ax_hist.set_title(
-                f"ROI {roi.get('roi_number', i+1)}: {roi.get('material','')}",
+                f"ROI {roi.get('roi_number', i + 1)}: {roi.get('material', '')}",
                 fontsize=9,
             )
             ax_hist.grid(axis="y", linestyle="--", alpha=0.7)
